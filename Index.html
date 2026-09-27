@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rewild 3D — v15</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bark:rgba(40,31,22,.86);
+  --bark-solid:#2b2118;
+  --edge:rgba(241,230,207,.16);
+  --bone:#f1e6cf;
+  --bone-dim:rgba(241,230,207,.64);
+  --ochre:#d29b4a;
+  --gum:#86b86a;
+  --lake:#5ab0e0;
+  --ember:#e8744f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#9fd3f2;color:var(--bone);
+  font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif;user-select:none;-webkit-user-select:none}
+#game{display:block;cursor:crosshair}
+.panel{position:fixed;background:var(--bark);border:1.5px solid var(--edge);border-radius:14px}
+
+#stats{top:14px;left:14px;padding:12px 16px 12px;width:236px;max-height:calc(100vh - 110px);overflow-y:auto}
+.cover{display:flex;height:8px;border-radius:5px;overflow:hidden;background:rgba(0,0,0,.38);margin:0 0 7px}
+.cover i{display:block;height:100%;width:0}
+.c0{background:#b08a5c}.c1{background:#a3c85e}.c2{background:#5f9a44}.c3{background:#2f6a36}.cb{background:#4a423b}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px;font-size:13px;color:var(--bone-dim);margin-bottom:4px}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend span b{margin-left:auto;color:var(--bone);font-weight:500;font-variant-numeric:tabular-nums}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.sep{height:1px;background:var(--edge);margin:6px 0}
+#wild summary{cursor:pointer;list-style:none}
+#wild summary::-webkit-details-marker{display:none}
+#wild summary span::after{content:' \25B8';font-size:12px}
+#wild[open] summary span::after{content:' \25BE'}
+#species{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:14px;line-height:1.5;padding:0 0 6px 10px;color:var(--bone-dim)}
+#species .z{opacity:.4}
+#species b{color:var(--bone);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+#pct{font-size:40px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+#pct small{font-size:16px;font-weight:500;color:var(--bone-dim);margin-left:4px}
+.meter{height:8px;border-radius:5px;background:rgba(0,0,0,.38);overflow:hidden;margin:9px 0 9px}
+.meter>div{height:100%;width:0;border-radius:5px}
+#pctFill{background:linear-gradient(90deg,var(--ochre),var(--gum))}
+.row{display:flex;justify-content:space-between;font-size:15px;line-height:1.65;color:var(--bone-dim)}
+.row b{color:var(--bone);font-weight:600;font-variant-numeric:tabular-nums}
+#poachN,#fireN{color:var(--ember)}
+#stealN,#penN{color:#e08ae0}
+
+#waterPanel{left:50%;bottom:16px;transform:translateX(-50%);padding:9px 16px 11px;width:min(340px,80vw)}
+#waterPanel .row{line-height:1.3}
+#waterPanel .meter{height:12px;margin:7px 0 0}
+#waterFill{background:linear-gradient(90deg,#3f8fc4,var(--lake))}
+#waterStatus{color:var(--lake)}
+#waterStatus.empty{color:var(--ember)}
+#waterPanel #toolRow{display:block;font-size:13px;color:var(--bone-dim);margin-top:6px;text-align:center}
+#toolRow b{color:var(--bone)}
+#inv{left:50%;bottom:104px;transform:translateX(-50%);display:flex;gap:10px;padding:10px 12px}
+#inv.hidden{display:none}
+.slot{width:92px;height:92px;border-radius:12px;border:2px solid var(--edge);background:rgba(0,0,0,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--bone-dim)}
+.slot:hover{border-color:rgba(241,230,207,.4)}
+.slot.on{border-color:var(--gum);color:var(--bone);background:rgba(134,184,106,.16)}
+.slot .ic{font-size:30px;line-height:1}
+.slot .k{font-size:11px;opacity:.7}
+#hint{left:50%;bottom:112px;transform:translateX(-50%);padding:7px 14px;font-size:14px;pointer-events:none}
+#hint.hidden,#inv.hidden{display:none}
+
+#mini{top:14px;right:14px;padding:7px}
+#musicBtn{position:fixed;right:14px;bottom:16px;font-size:14px;padding:7px 12px;background:var(--bark)}
+#minimap{display:block;width:240px;height:240px;image-rendering:pixelated;border-radius:8px}
+
+#toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(460px,60vw)}
+.toast{background:var(--bark);border:1.5px solid var(--edge);padding:6px 14px;border-radius:20px;font-size:15px;text-align:center;animation:tin .25s ease-out;transition:opacity .5s}
+.toast.big{font-size:18px;font-weight:600;border-color:var(--gum)}
+.toast.fade{opacity:0}
+@keyframes tin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,23,16,.5);padding:20px}
+#overlay.hidden{display:none}
+.card{background:var(--bark-solid);border:1.5px solid var(--edge);border-radius:18px;padding:28px 32px 26px;max-width:440px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto}
+.card h1{font-size:60px;font-weight:700;line-height:.95;color:var(--gum)}
+.card h1 span{display:block;font-size:20px;font-weight:500;color:var(--bone-dim);margin-top:8px}
+.card p{font-size:17px;line-height:1.45;margin-top:16px;color:var(--bone)}
+.card ul{list-style:none;margin-top:14px;font-size:16px;line-height:1.7;color:var(--bone-dim)}
+.card ul b{color:var(--bone);font-weight:600}
+.btns{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+button{font-family:inherit;font-size:18px;font-weight:600;background:var(--gum);color:#1d2913;border:0;border-radius:12px;padding:11px 22px;cursor:pointer}
+button.ghost{background:transparent;color:var(--bone);border:1.5px solid var(--edge)}
+button:hover{filter:brightness(1.08)}
+button:focus-visible{outline:3px solid var(--bone);outline-offset:3px}
+@media (max-width:700px){#mini{display:none}#stats{width:180px}#pct{font-size:32px}}
+
+/* v7: side panel on the left holds the map and the stats, outside the game view */
+:root{--side:272px}
+#side{position:fixed;left:0;top:0;bottom:0;width:var(--side);background:var(--bark-solid);border-right:1.5px solid var(--edge);padding:12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:3}
+#side .panel{position:static}
+#side #mini{padding:7px}
+#side #minimap{width:100%;height:auto;aspect-ratio:1}
+#side #stats{width:auto;max-height:none;overflow:visible}
+#game{position:fixed;top:0;left:var(--side)}
+#helpBtn{width:100%;padding:9px 12px;font-size:14px}
+.card h2{font-size:17px;margin:14px 0 6px;color:var(--gum)}
+table.keys{width:100%;border-collapse:collapse;font-size:13.5px}
+table.keys td{padding:3px 6px;vertical-align:top;border-bottom:1px solid var(--edge)}
+table.keys td:first-child{white-space:nowrap;width:42%;color:var(--bone)}
+table.keys td:last-child{color:var(--bone-dim)}
+.card{max-width:520px}
+#waterPanel,#inv,#hint,#toasts{left:calc(var(--side) + (100vw - var(--side))/2) !important}
+@media (max-width:700px){:root{--side:200px}#side #mini{display:block}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<aside id="side">
+<div id="mini" class="panel"><canvas id="minimap" width="224" height="224"></canvas></div>
+<button id="helpBtn" class="ghost">How to play &amp; controls (H)</button>
+<div id="stats" class="panel">
+  <div id="pct">0.0<small>% rewilded</small></div>
+  <div class="meter"><div id="pctFill"></div></div>
+  <div class="cover"><i class="c0"></i><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="cb"></i></div>
+  <div class="legend">
+    <span><i class="c0"></i>Bare<b>0%</b></span>
+    <span><i class="c1"></i>Grass<b>0%</b></span>
+    <span><i class="c2"></i>Scrub<b>0%</b></span>
+    <span><i class="c3"></i>Forest<b>0%</b></span>
+    <span><i class="cb"></i>Burnt<b>0%</b></span>
+  </div>
+  <div class="sep"></div>
+  <div class="row">Poachers out <b id="poachN">0</b></div>
+  <div class="row">Trappers out <b id="trapN">0</b></div>
+  <div class="row">Stealers out <b id="stealN">0</b></div>
+  <div class="row">Animals in crates <b id="crateN">0</b></div>
+  <div class="row">Animals in pens <b id="penN">0</b></div>
+  <div class="row">Visits to come <b id="returnN">0</b></div>
+  <div class="row">Poachers rewilded <b id="convN">0</b></div>
+  <div class="row">Fires burning <b id="fireN">0</b></div>
+  <div class="row">Cut off from water <b id="thirstN">0</b></div>
+  <div class="row">Beaver streams <b id="streamN">0 m</b></div>
+  <div class="sep"></div>
+  <details id="wild">
+    <summary class="row"><span>Wildlife</span><b id="animalN">0</b></summary>
+    <div id="species"></div>
+  </details>
+  <div class="row">Time <b id="timeN">0:00</b></div>
+</div>
+</aside>
+
+<div id="waterPanel" class="panel">
+  <div class="row">Water tank <b id="waterStatus"></b></div>
+  <div class="meter"><div id="waterFill"></div></div>
+  <div class="row" id="toolRow">Tool <b id="toolName">Water gun</b> <span id="dirtN"></span> · <b>Alt</b> for tools</div>
+</div>
+<div id="inv" class="panel hidden">
+  <div class="slot on" data-tool="gun"><div class="ic">💧</div>Water gun<div class="k">1</div></div>
+  <div class="slot" data-tool="shovel"><div class="ic">⛏️</div>Pick-shovel<div class="k">2</div></div>
+</div>
+<div id="hint" class="panel hidden"></div>
+
+
+<button id="musicBtn" class="ghost" hidden>Music on (M)</button>
+<div id="toasts"></div>
+<div id="overlay"><div class="card" id="card"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ---------------- Constants & tuning ---------------- */
+const W = 274, H = 274, N = W * H;      // v13: 274 x 274 tiles (20% more area than v12)
+const TS = 28;                          // tile size in CSS px
+const CH = 12;                          // tiles per render chunk (side)
+const CW = Math.ceil(W / CH), CHN = Math.ceil(H / CH);
+const DIRT = 0, ROCK = 1, WATER = 2, TAU = Math.PI * 2;
+
+const CFG = {
+  // growth (tuned by headless sim: ~25–40 min for an engaged player)
+  SPREAD: 0.2, WATER_GROW: 0.044, DRY_SPREAD: 0.1, MOIST_TIME: 25, SHORE_WET: 0.5, ROCK_MULT: 0.55,
+  SPLASH_PROG: 0.4, SPLASH_R: 1.7, DISPERSE_SAMPLES: 16, DISPERSE_AMT: 0.4, SIM_DT: 0.2,
+  // player
+  PLAYER_SPEED: 7, RIDE_MULT: 1.5, JUMP_V: 5.6, GRAVITY: 18, DIG_RANGE: 3.5, DIG_CD: 0.3, DIRT_MAX: 30, FIRE_CD: 0.16, SHOT_COST: 2.5, TANK: 600, REFILL: 65, BLOB_SPEED: 16, RANGE: 8,
+  // poachers
+  POACHERS: 35, POACHER_SPEED: 1.5, POACHER_FLEE: 2.4, FLEE_R: 5.5, DODGE_CHANCE: 0.35, SEE_R: 12, KEEP_R: 9, // v11: poachers see you from further off and keep their distance // v6: ~15% faster, a bit more evasive CHOP_RATE: 0.02,
+  // animals
+  ANIMAL_MAX: 140, ANIMAL_SPAWN_EVERY: 2.5, WIN_AT: 0.995,
+  ANIMAL_BREED_HITS: 3, MAX_YOUNG: 3,
+  SPRAY_BREED_WINDOW: 60,                 // spraying only breeds an animal fresh from a poacher, for this long
+  NAT_YOUNG: 2, NAT_BREED_MIN: 140, NAT_BREED_MAX: 380, // v6b: tuned for ~100 animals at 20 min // otherwise animals with water access have young on their own
+  THIRST_WARN: 300, THIRST_DIE: 180,      // warn after 5 min cut off from water; they die if still cut off 3 min later
+  ANIMAL_HARD_MAX: 260,                   // most animals the map can hold
+  TREE_AGE_RATE: 0.005, TREE_AGE_WET: 0.03,              // trees keep growing bigger after maturing
+  TREE_SLOW: 0.85, // v14: scrub turns to forest faster      // shrub -> tree is slower than other stages
+  OVERWATER: 3.5,      // hits of water on a finished tile before it steps up (meadow -> scrub -> trees)
+  // beavers
+  BEAVER_DIG: 9, BEAVER_POND_DIG: 4, BEAVER_POND_CHANCE: 0.75, BEAVER_MAX_WATER: 400, BEAVER_BUILDERS: 3,
+  // threats
+  POACHER_RETURNS: 2, STEALERS: 10, TRAPPERS: 5,        // v7: of the 35: 20 fire-lighting poachers, 5 trappers, 10 stealers
+  CRATE_MAX: 5, TRAPPER_SPEED: 2.1, TRAP_R: 45,         // v7: each trapper keeps up to 5 animals boxed
+  CHOP_EVERY_MIN: 45, CHOP_EVERY_MAX: 90, CHOP_TIME: 5, // tree felling, about the same pace as fires
+  STEALER_SPEED: 2.05, HUT_BUILD: 45, HUT_CAP: 10, STEALER_REST_MIN: 20, STEALER_REST_MAX: 40,
+  HUNT_R: 60,          // how far a stealer looks for animals to steal, from wherever he is
+  HUNT_CHANCE: 1,      // chance he sets off after a target when he spots one (otherwise keeps prowling)
+  STEALER_START_MIN: 30, STEALER_START_MAX: 180, // staggered start, so huts appear gradually
+  POACHER_RETURN_MIN: 90, POACHER_RETURN_MAX: 240,       // each poacher comes back once, after this many seconds
+  FIRE_EVERY_MIN: 32, FIRE_EVERY_MAX: 62, MAX_NEW_FIRE: 10, MAX_BURNING: 30, FIRE_BURN_TIME: 14, FIRE_SPREAD: 0.0016,
+  DIG_EVERY_MIN: 32, DIG_EVERY_MAX: 70, DIG_TIME: 6,
+  // camera
+  ZOOMS: [0.75, 0.9, 1, 1.2, 1.45, 1.75, 2.1, 2.5],
+};
+
+/* ---------------- RNG & noise ---------------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let R = Math.random;
+function hash2(x, y, s){
+  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vnoise(x, y, s){
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+  const a = hash2(xi,yi,s), b = hash2(xi+1,yi,s), c = hash2(xi,yi+1,s), d = hash2(xi+1,yi+1,s);
+  return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v;
+}
+function fbm(x, y, s, oct){let t=0,a=1,f=1,n=0;for(let i=0;i<oct;i++){t+=vnoise(x*f,y*f,s+i*17)*a;n+=a;a*=.5;f*=2;}return t/n;}
+function quant(arr, q){const s = Float32Array.from(arr).sort(); return s[Math.floor(q*(s.length-1))];}
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+
+/* ---------------- World state ---------------- */
+const terr = new Uint8Array(N), hgt = new Uint8Array(N), stage = new Uint8Array(N), cap = new Uint8Array(N);
+const shore = new Uint8Array(N), depth = new Uint8Array(N), dirtyFlag = new Uint8Array(N);
+const prog = new Float32Array(N), moist = new Float32Array(N);
+const scar = new Uint8Array(N);        // 0 none, 1 burnt (needs watering to regrow), 2 dug
+const wdist = new Uint8Array(N);       // steps to nearest water
+const ncap = new Uint8Array(N);        // natural cap, used for scoring (overwatering can raise cap)
+const soak = new Float32Array(N);      // recent overwatering on finished tiles
+const cover = new Uint32Array(4); let burntN = 0, beaverWater = 0, beaverToast = false, totalVisits = 0;
+let convCount = {};
+const blaze = new Float32Array(N), treeAge = new Float32Array(N);
+const dam = new Uint8Array(N), tint = new Float32Array(N);
+const elev = new Uint8Array(N);      // v10: ground height in half-blocks above the base, for smooth hills
+const pitD = new Uint8Array(N);      // v10: depth (blocks) of a pit dug below the base with the pick-shovel
+const pitFill = new Float32Array(N); // v10: how full a dug pond is (0..1)
+const madeWater = new Uint8Array(N); // v6: water you or the beavers dug (can be filled back in)
+const reach = new Uint8Array(N);      // green ground with an unbroken green path to water
+let burning = [];
+let landCount = 0, DS = 1;
+let dirtyQ = [];
+
+let player, poachers, animals, blobs, parts;
+let rewild = 0, poachersLeft = 0, elapsed = 0, simAcc = 0, animalTimer = 0;
+let state = 'title', winShown = false, milestones = [];
+let returning = [], fireTimer = 60, digTimer = 40, chopTimer = 50, zoomIdx = 4, huts = [], lockToastT = -99, herds = [], reachT = 0, thirstT = 0;
+
+/* ---------------- Map generation ---------------- */
+function generate(seed){
+  R = mulberry32(seed);
+  const S = (seed % 9973) + 1; DS = S;
+  const hn = new Float32Array(N), rn = new Float32Array(N), cn = new Float32Array(N);
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const i=y*W+x;
+    tint[i]=fbm(x/8,y/8,S*3+7,2); hn[i]=fbm(x/26,y/26,S*3+1,4); rn[i]=fbm(x/9,y/9,S*3+2,3); cn[i]=fbm(x/14,y/14,S*3+3,3);
+  }
+  const h1=quant(hn,.74), h2=quant(hn,.90), rq=quant(rn,.76), c1=quant(cn,.4), c2=quant(cn,.78);
+
+  // lakes: always three, one in each third of the map around the middle
+  const lakes=[]; const rot=R()*TAU;
+  for (let k=0;k<3;k++){
+    for (let t=0;t<200;t++){
+      const ang=rot+k*TAU/3+(R()-.4)*.4, dist=(74+R()*12)*W/200, r=8+R()*5; // v13: lakes pushed out towards the edges, far apart
+      const x=clamp(W/2+Math.cos(ang)*dist,r+10,W-r-10), y=clamp(H/2+Math.sin(ang)*dist,r+10,H-r-10);
+      if (t<199 && lakes.some(l=>Math.hypot(l.x-x,l.y-y)<l.r+r+40)) continue;
+      lakes.push({x,y,r}); break;
+    }
+  }
+
+  landCount=0;
+  let hmax=-1e9; for (let i=0;i<N;i++) if (hn[i]>hmax) hmax=hn[i];
+  const h0=h1-(h2-h1)*.6; elev.fill(0); pitD.fill(0); pitFill.fill(0);
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const i=y*W+x;
+    let wd=9;
+    for (const l of lakes){
+      const d=Math.hypot(x+.5-l.x,y+.5-l.y)/l.r + (fbm(x/7,y/7,S*3+5,2)-.5)*.7;
+      if (d<wd) wd=d;
+    }
+    stage[i]=0; prog[i]=0; moist[i]=0; shore[i]=0; dirtyFlag[i]=0; scar[i]=0; blaze[i]=0; treeAge[i]=0; soak[i]=0; ncap[i]=0; dam[i]=0;
+    if (wd<1){ terr[i]=WATER; hgt[i]=0; cap[i]=0; continue; }
+    let h = hn[i]>h2?2:hn[i]>h1?1:0; if (wd<1.8) h=0;
+    // v10: smooth hills in half-block steps, up to 6 blocks high at the peaks, flattening out near the lakes
+    const tt=clamp((hn[i]-h0)/(hmax-h0),0,1), flat=clamp((wd-1.6)/1.4,0,1);
+    elev[i]=Math.round(Math.pow(tt,1.1)*12*flat);
+    hgt[i]=elev[i]>=8?2:elev[i]>=4?1:0;
+    terr[i] = (rn[i]>rq || (h===2 && rn[i]>rq-.05)) ? ROCK : DIRT;
+    if (wd<1.25) terr[i]=DIRT;
+    let c = cn[i]<c1?1:cn[i]<c2?2:3;
+    if (terr[i]===ROCK) c=Math.min(c,2);
+    if (h===2 && c===3 && hash2(x,y,S)<.5) c=2;
+    if (wd<1.6) c=3;
+    cap[i]=c; ncap[i]=c; landCount++;
+  }
+  // shore + water depth
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const i=y*W+x;
+    let nearW=0, minD=9;
+    for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){
+      const X=x+dx,Y=y+dy; if (X<0||Y<0||X>=W||Y>=H) continue;
+      const j=Y*W+X, cheb=Math.max(Math.abs(dx),Math.abs(dy));
+      if (terr[i]===WATER){ if (terr[j]!==WATER && cheb<minD) minD=cheb; }
+      else if (cheb<=1 && terr[j]===WATER) nearW=1;
+    }
+    if (terr[i]===WATER) depth[i] = minD<=1?0:minD<=2?1:2;
+    else { shore[i]=nearW; if (nearW && R()<.7) stage[i]=1; }
+  }
+
+  // distance to water (used for palms, reeds and crocodiles)
+  wdist.fill(255); const q=[];
+  for (let i=0;i<N;i++) if (terr[i]===WATER){ wdist[i]=0; q.push(i); }
+  for (let h=0;h<q.length;h++){
+    const i=q[h], d=wdist[i]; if (d>=8) continue;
+    const x=i%W, y=(i/W)|0;
+    if (x>0&&wdist[i-1]>d+1){wdist[i-1]=d+1;q.push(i-1);}
+    if (x<W-1&&wdist[i+1]>d+1){wdist[i+1]=d+1;q.push(i+1);}
+    if (y>0&&wdist[i-W]>d+1){wdist[i-W]=d+1;q.push(i-W);}
+    if (y<H-1&&wdist[i+W]>d+1){wdist[i+W]=d+1;q.push(i+W);}
+  }
+
+  // player start near centre on land
+  let best=null, bd=1e9;
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const i=y*W+x; if (terr[i]===WATER) continue;
+    const d=Math.hypot(x-W/2,y-H/2)+hgt[i]*3; if (d<bd){bd=d;best=[x,y];}
+  }
+  player = {x:best[0]+.5, y:best[1]+.5, aim:0, water:CFG.TANK, cd:0, walk:0, moving:false, refilling:false,
+            jz:0, vz:0, air:false, lastX:best[0]+.5, lastY:best[1]+.5, tool:'gun', dirt:0, ride:null, digT:0};
+  madeWater.fill(0);
+
+  poachers=[]; animals=[]; blobs=[]; parts=[];
+  let guard=0;
+  while (poachers.length<CFG.POACHERS && guard++<20000){
+    const x=R()*W, y=R()*H, i=(y|0)*W+(x|0);
+    if (terr[i]===WATER || Math.hypot(x-player.x,y-player.y)<20) continue;
+    poachers.push({x,y,dir:R()*TAU,spd:CFG.POACHER_SPEED,state:'wander',t:R()*3,walk:R()*10,wob:0,stumble:0,think:false,returned:false,visits:0,made:[],kind:poachers.length<CFG.POACHERS-CFG.STEALERS-CFG.TRAPPERS?'poacher':poachers.length<CFG.POACHERS-CFG.STEALERS?'trapper':'stealer'});
+  }
+  poachersLeft=totalVisits=poachers.length*(1+CFG.POACHER_RETURNS);
+  convCount={}; beaverWater=0; beaverToast=false;
+  returning=[]; burning=[]; fireTimer=60+R()*30; digTimer=40+R()*30; chopTimer=50+R()*30; huts=[]; herds=[]; reach.fill(0);
+  rewild=0; elapsed=0; simAcc=0; animalTimer=0; winShown=false; milestones=[.10,.25,.50,.75,.90];
+  dirtyQ=[]; chunks.clear();
+  cam.x=player.x; cam.y=player.y;
+  for (let i=0;i<N;i++) mmPixel(i);
+  computeRewild();
+}
+
+
+/* ---------------- Growth helpers ---------------- */
+function markChanged(i){
+  if (stage[i]>0 && scar[i]===2) scar[i]=0; if (stage[i]<3){ treeAge[i]=0; treeB[i]=0; treeForce[i]=0; }
+  tileChanged(i); // 3D: rebuild this tile's chunk
+}
+function setStage(i,s){ stage[i]=s; prog[i]=0; markChanged(i); }
+function addProg(i,amt){
+  if (terr[i]===WATER || scar[i]===1) return; // burnt ground needs watering first
+  let s=stage[i]; const c=cap[i]; if (s>=c) return;
+  let p=prog[i]+amt, changed=false;
+  while (p>=1 && s<c){ p-=1; s++; changed=true; }
+  if (s>=c) p=0;
+  stage[i]=s; prog[i]=p;
+  if (changed) markChanged(i);
+}
+function splash(cx,cy,Rr,amt,wet){
+  for (let y=Math.floor(cy-Rr); y<=cy+Rr; y++) for (let x=Math.floor(cx-Rr); x<=cx+Rr; x++){
+    if (x<0||y<0||x>=W||y>=H) continue;
+    const i=y*W+x; if (terr[i]===WATER) continue;
+    const d=Math.hypot(x+.5-cx,y+.5-cy); if (d>Rr) continue;
+    const f=1-d/(Rr+.3);
+    if (wet){
+      moist[i]=Math.max(moist[i], .6+.4*f);
+      if (blaze[i]>0){ blaze[i]=0; burst(x+.5,y+.5,2,'smoke'); }
+      if (scar[i]===1){ scar[i]=0; markChanged(i); } // re-sown
+      else if (stage[i]>=cap[i] && cap[i]<3){ // overwatering a finished patch pushes it up a stage
+        soak[i]+=f;
+        if (soak[i]>=CFG.OVERWATER){ soak[i]=0; cap[i]++; burst(x+.5,y+.5,2,'sparkle'); }
+      }
+      else if (stage[i]===3 && !treeForce[i]){ // v5: keep watering open grass at the forest stage and a tree grows there
+        soak[i]+=f;
+        if (soak[i]>=CFG.OVERWATER){ soak[i]=0; treeForce[i]=1; treeAge[i]=Math.max(treeAge[i],.4); treeB[i]=1; burst(x+.5,y+.5,6,'leaf'); tileChanged(i); }
+      }
+    }
+    addProg(i, amt*f);
+  }
+}
+const treeB=new Uint8Array(N); // 3D: tree size bucket
+const treeForce=new Uint8Array(N); // v2: a tree always shows here (e.g. where a poacher turned into one)
+function computeRewild(){
+  let tot=0;
+  for (let i=0;i<N;i++){ if (terr[i]===WATER) continue; const c=ncap[i]||1; tot += stage[i]>=c?1:(stage[i]+prog[i])/c; }
+  rewild = tot/landCount;
+}
+function simTick(){
+  const dt=CFG.SIM_DT; let tot=0; cover.fill(0); burntN=0;
+  for (let y=0;y<H;y++){
+    const yo=y*W;
+    for (let x=0;x<W;x++){
+      const i=yo+x; if (terr[i]===WATER) continue;
+      let m=moist[i];
+      if (soak[i]>0) soak[i]=Math.max(0,soak[i]-dt*.02);
+      if (m>0){ m-=dt/CFG.MOIST_TIME; if (m<0) m=0; moist[i]=m; }
+      const s=stage[i], c=cap[i];
+      if (s===3 && treeAge[i]<1){
+        treeAge[i]=Math.min(1,treeAge[i]+dt*(CFG.TREE_AGE_RATE+CFG.TREE_AGE_WET*(shore[i]?Math.max(m,.5):m)));
+        const b=treeAge[i]<.34?0:treeAge[i]<.67?1:2; if (b!==treeB[i]){ treeB[i]=b; tileChanged(i); } // 3D: trees grow in 3 sizes
+      }
+      if (s<c && scar[i]!==1){
+        let n=0, d=0;
+        if (x>0) n+=stage[i-1]; if (x<W-1) n+=stage[i+1];
+        if (y>0){ n+=stage[i-W]; if (x>0) d+=stage[i-W-1]; if (x<W-1) d+=stage[i-W+1]; }
+        if (y<H-1){ n+=stage[i+W]; if (x>0) d+=stage[i+W-1]; if (x<W-1) d+=stage[i+W+1]; }
+        const f=(n+d*.7)/20.4;
+        let wet=m; if (shore[i] && wet<CFG.SHORE_WET) wet=CFG.SHORE_WET;
+        // v4: land you haven't watered spreads slowly (was .35) and only as far as grass; scrub and trees need water
+        let rate=(s>=1 && wet<.05) ? 0 : CFG.SPREAD*f*(CFG.DRY_SPREAD+(1-CFG.DRY_SPREAD)*wet)+CFG.WATER_GROW*wet;
+        if (terr[i]===ROCK) rate*=CFG.ROCK_MULT;
+        if (s===2) rate*=CFG.TREE_SLOW;
+        if (rate>0){
+          let p=prog[i]+rate*dt;
+          if (p>=1){ stage[i]=s+1; p=0; markChanged(i); }
+          prog[i]= stage[i]>=c?0:p;
+        }
+      }
+      const nc=ncap[i]||1; tot += stage[i]>=nc?1:(stage[i]+prog[i])/nc;
+      cover[stage[i]]++; if (scar[i]===1) burntN++;
+    }
+  }
+  rewild=tot/landCount;
+  // seed dispersal from mature trees (wind, birds)
+  for (let k=0;k<CFG.DISPERSE_SAMPLES;k++){
+    const i=(R()*N)|0;
+    if (stage[i]===3){
+      const x=i%W+((R()*11)|0)-5, y=((i/W)|0)+((R()*11)|0)-5;
+      if (x>=0&&y>=0&&x<W&&y<H){ // v4: seeds only take properly on watered ground; dry ground just gets a little grass
+        const j=y*W+x;
+        if (moist[j]>.05 || shore[j]) addProg(j, CFG.DISPERSE_AMT); else if (stage[j]===0) addProg(j, CFG.DISPERSE_AMT*.25);
+      }
+    }
+  }
+  fireTick(dt);
+}
+
+/* ---------------- Fire ---------------- */
+function ignite(i){
+  if (i<0 || blaze[i]>0 || terr[i]===WATER || stage[i]===0) return false;
+  blaze[i]=.001; burning.push(i); return true;
+}
+function fireTick(dt){
+  if (!burning.length) return;
+  const next=[];
+  for (const i of burning){
+    if (blaze[i]<=0) continue;                       // put out
+    blaze[i]+=dt/CFG.FIRE_BURN_TIME;
+    if (blaze[i]>=1){ blaze[i]=0; scar[i]=1; moist[i]=0; setStage(i,0); continue; } // burnt out
+    next.push(i);
+  }
+  const len=next.length; let room=CFG.MAX_BURNING-len;
+  for (let k=0;k<len && room>0;k++){
+    const i=next[k], x=i%W, y=(i/W)|0;
+    for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){
+      if ((!dx&&!dy)||room<=0) continue;
+      const X=x+dx, Y=y+dy; if (X<0||Y<0||X>=W||Y>=H) continue;
+      const j=Y*W+X; if (terr[j]===WATER||blaze[j]>0||stage[j]===0) continue;
+      if (R()<CFG.FIRE_SPREAD*stage[j]*(1-moist[j])){ blaze[j]=.001; next.push(j); room--; }
+    }
+  }
+  burning=next;
+}
+
+/* ================================================================
+   REWILD 3D — engine layer (step 1: terrain, player, camera)
+   Everything above this line is the v12 simulation, carried over as-is.
+   ================================================================ */
+
+/* ---------------- Palette & minimap (from v12) ---------------- */
+const PAL={ dirt:[178,139,92], rock:[148,142,130], g1:[152,181,88], g2:[120,165,76], g3:[94,146,66] };
+function mix(a,b,t){return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];}
+function groundColor(t,st){
+  if (st===0) return t===ROCK?PAL.rock:PAL.dirt;
+  const g = st===1?PAL.g1:st===2?PAL.g2:PAL.g3;
+  return t===ROCK?mix(PAL.rock,g,.55):g;
+}
+const el=id=>document.getElementById(id);
+const mm=el('minimap'); mm.width=W; mm.height=H;
+const mg=mm.getContext('2d'); const mimg=mg.createImageData(W,H);
+function mmPixel(i){
+  let c;
+  if (terr[i]===WATER) c = dam[i]?[120,80,45]: depth[i]===0?[98,162,202]:[60,125,180];
+  else {
+    const st=stage[i];
+    c = scar[i]===1?[52,46,40]: scar[i]===2?[125,92,60]: st===3?[60,110,52]:st===2?[98,146,64]:groundColor(terr[i],st);
+    if (pitD[i]) c=pitFill[i]>0?[90,140,180]:[110,78,50];            // v10: dug pits and filling ponds
+    const k=1+elev[i]*.035; c=[c[0]*k,c[1]*k,c[2]*k];
+  }
+  const o=i*4; mimg.data[o]=c[0]; mimg.data[o+1]=c[1]; mimg.data[o+2]=c[2]; mimg.data[o+3]=255;
+}
+const cam={x:W/2,y:H/2};   // 2D camera kept for the v12 code; the 3D camera is cam3
+
+/* ---------------- Voxel heights ----------------
+   1 tile = 1 block column. v12 height 0/1/2 -> block tops 3/5/7.
+   Lake beds sit below the water surface. The island floats, like reference 2. */
+const LAND0=3, STEP=2, WATER_Y=2.72, BOTTOM=-5, CS=16;
+const NCX=Math.ceil(W/CS), NCZ=Math.ceil(H/CS);
+function topOf(i){ return terr[i]===WATER ? 2-depth[i] : LAND0+elev[i]*.5-pitD[i]; } // v10: half-block hills, dug pits
+function standY(x,y){ const i=tileAt(x,y); if (i<0) return LAND0; return terr[i]===WATER?WATER_Y:topOf(i); }
+
+/* ---------------- Three.js setup ---------------- */
+const cv=el('game');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5)); // capped for smoother frame rates on high-res screens
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const HORIZON=0xcfe6f0;
+scene.fog=new THREE.Fog(HORIZON,90,260);
+// v8: sky dome in world space, so the horizon stays pale and the sky deepens overhead however you tilt
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:new THREE.Color(0x2f86d4)},mid:{value:new THREE.Color(0x8cc6ec)},bot:{value:new THREE.Color(HORIZON)},sunDir:{value:new THREE.Vector3(55,95,35).normalize()}},
+  vertexShader:'varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader:'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 sunDir; varying vec3 vP; void main(){ float h=vP.y; vec3 c = h<0.0 ? bot : (h<0.25 ? mix(bot,mid,h/0.25) : mix(mid,top,clamp((h-0.25)/0.6,0.0,1.0))); float s=max(dot(normalize(vP),sunDir),0.0); c+=vec3(1.0,0.93,0.75)*(pow(s,600.0)*1.2+pow(s,24.0)*0.18); gl_FragColor=vec4(c,1.0); }'}); // v14: sun and glow
+const sky=new THREE.Mesh(new THREE.SphereGeometry(450,32,16),skyMat); sky.renderOrder=-10; scene.add(sky);
+scene.background=new THREE.Color(HORIZON);
+const camera=new THREE.PerspectiveCamera(55,1,.1,1000);
+const hemi=new THREE.HemisphereLight(0xcfe9ff,0x6e5a3c,.52); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff0d2,.78);
+sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-64,right:64,top:64,bottom:-64,near:1,far:280});
+sun.shadow.bias=-.0006; sun.shadow.normalBias=.03;
+scene.add(sun); scene.add(sun.target);
+
+// speckled block texture (grey, tinted by vertex colour) — our own pattern, not Minecraft's
+const blockTex=(()=>{
+  const c=document.createElement('canvas'); c.width=c.height=16; const g=c.getContext('2d');
+  for (let y=0;y<16;y++) for (let x=0;x<16;x++){
+    const v=208+((hash2(x,y,5)*40)|0)-(hash2(x>>1,y>>1,9)<.18?30:0);
+    g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(x,y,1,1);
+  }
+  g.fillStyle='rgba(0,0,0,.10)'; g.fillRect(0,15,16,1); g.fillRect(15,0,1,16); // faint block edge
+  const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter; return t;
+})();
+const landMat=new THREE.MeshLambertMaterial({vertexColors:true,map:blockTex});
+const waterMat=new THREE.MeshLambertMaterial({vertexColors:true,transparent:true,opacity:.78,depthWrite:false});
+const waterTime={value:0};
+waterMat.onBeforeCompile=sh=>{ // v14: gentle ripples and a shimmer on the water
+  sh.uniforms.uTime=waterTime;
+  sh.vertexShader='uniform float uTime;\nvarying float vShim;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\nfloat w=sin(uTime*1.6+position.x*.9+position.z*.6)*.035+sin(uTime*2.3-position.x*.5+position.z*1.1)*.025;\ntransformed.y+=w;\nvShim=w;');
+  sh.fragmentShader='varying float vShim;\n'+sh.fragmentShader.replace('#include <dithering_fragment>','#include <dithering_fragment>\ngl_FragColor.rgb+=vec3(.9,.97,1.)*max(vShim,0.)*2.2;');
+};
+
+/* ---------------- Chunked terrain mesh ---------------- */
+const chunks={map:new Map(), dirty:new Set(),
+  clear(){ for (const c of this.map.values()){ for (const m of [c.land,c.water]) if (m){ scene.remove(m); m.geometry.dispose(); } } this.map.clear(); this.dirty.clear(); }};
+function tileChanged(i){ // call whenever a tile's look changes; later steps use this for growth
+  mmPixel(i);
+  const x=i%W, y=(i/W)|0, cx=(x/CS)|0, cz=(y/CS)|0;
+  chunks.dirty.add(cx+cz*NCX);
+  if (x%CS===0&&cx>0) chunks.dirty.add(cx-1+cz*NCX); if (x%CS===CS-1&&cx<NCX-1) chunks.dirty.add(cx+1+cz*NCX);
+  if (y%CS===0&&cz>0) chunks.dirty.add(cx+(cz-1)*NCX); if (y%CS===CS-1&&cz<NCZ-1) chunks.dirty.add(cx+(cz+1)*NCX);
+}
+const C_SIDE=[134,98,64], C_STONE=[118,113,106], C_SAND=[201,183,134], C_BURNT=[58,50,43], C_DUG=[125,92,60];
+function topColor(i){
+  if (terr[i]===WATER) return C_SAND;
+  if (scar[i]===1) return C_BURNT;
+  if (scar[i]===2 || pitD[i]) return C_DUG;
+  const st=stage[i], x=i%W, z=(i/W)|0;
+  if (st===3 && !hasTree(i,x,z)) return groundColor(terr[i],2); // v2: open grass between trees
+  return groundColor(terr[i],st);
+}
+function buildChunk(cx,cz){
+  const P=[],Nn=[],U=[],Cc=[],I=[]; const WP=[],WN=[],WC=[],WI=[];
+  const quad=(P_,N_,C_,I_,U_,v,n,c,ao)=>{
+    const b=P_.length/3;
+    for (const p of v) P_.push(p[0],p[1],p[2]);
+    for (let k=0;k<4;k++){ const a=ao?ao[k]:1; N_.push(n[0],n[1],n[2]); C_.push(c[0]/255*a,c[1]/255*a,c[2]/255*a); }
+    if (U_) U_.push(0,0,1,0,1,1,0,1);
+    I_.push(b,b+1,b+2,b,b+2,b+3);
+  };
+  const x0=cx*CS, z0=cz*CS, x1=Math.min(W,x0+CS), z1=Math.min(H,z0+CS);
+  for (let z=z0;z<z1;z++) for (let x=x0;x<x1;x++){
+    const i=z*W+x, t=topOf(i), j=.93+hash2(x,z,DS+3)*.12, land=terr[i]!==WATER;
+    const hk=land?(.9+hgt[i]*.08)*(.94+tint[i]*.12):1;   // higher ground reads a little lighter
+    const tc=topColor(i).map(v=>v*j*hk);
+    // soft shading in corners where a neighbour column rises above this one
+    const up=(dx,dz)=>{ const X=x+dx,Z=z+dz; return X>=0&&Z>=0&&X<W&&Z<H&&topOf(Z*W+X)>t?1:0; };
+    const aoC=(sx,sz)=>{ const a=up(sx,0), b=up(0,sz), c=up(sx,sz); return a&&b?.6:1-(a+b+c)*.14; };
+    quad(P,Nn,Cc,I,U,[[x,t,z+1],[x+1,t,z+1],[x+1,t,z],[x,t,z]],[0,1,0],tc,[aoC(-1,1),aoC(1,1),aoC(1,-1),aoC(-1,-1)]);
+    // sides, one quad per block so each block reads as a cube
+    const nb=[[x+1,z,[1,0,0]],[x-1,z,[-1,0,0]],[x,z+1,[0,0,1]],[x,z-1,[0,0,-1]]];
+    for (const [nx,nz,n] of nb){
+      const out=nx<0||nz<0||nx>=W||nz>=H;
+      const nt=out?BOTTOM:topOf(nz*W+nx);
+      if (nt>=t) continue;
+      for (let y=nt;y<t-1e-6;){
+        const y1=Math.min(t,Math.floor(y+1e-6)+1);   // v10: side quads follow the block grid, with half-height slabs at the top
+        let c;
+        if (y1>=t-1e-6 && land && stage[i]>0 && !scar[i]) c=mix(C_SIDE,tc,.55);
+        else if (!land) c=C_SAND;
+        else if (y<LAND0-1 || (terr[i]===ROCK)) c=C_STONE;
+        else c=C_SIDE;
+        const k=(.8+.2*Math.min(1,(y-BOTTOM)/(t-BOTTOM+.01)))*(.95+hash2(x*7+y,z,DS+9)*.08);
+        c=[c[0]*k,c[1]*k,c[2]*k];
+        let v;
+        if (n[0]===1)  v=[[x+1,y,z+1],[x+1,y,z],[x+1,y1,z],[x+1,y1,z+1]];
+        if (n[0]===-1) v=[[x,y,z],[x,y,z+1],[x,y1,z+1],[x,y1,z]];
+        if (n[2]===1)  v=[[x,y,z+1],[x+1,y,z+1],[x+1,y1,z+1],[x,y1,z+1]];
+        if (n[2]===-1) v=[[x+1,y,z],[x,y,z],[x,y1,z],[x+1,y1,z]];
+        quad(P,Nn,Cc,I,U,v,n,c); y=y1;
+      }
+    }
+    if (land && scar[i]!==1) addPlants(i,x,z,t,P,Nn,Cc,I,U,quad);
+    if (!land && dam[i]){ // beaver dam at the end of a stream
+      for (let q=0;q<3;q++){ const o=.2+q*.3; quad(P,Nn,Cc,I,U,[[x,WATER_Y+.18,z+o+.12],[x+1,WATER_Y+.18,z+o+.12],[x+1,WATER_Y+.18,z+o-.12],[x,WATER_Y+.18,z+o-.12]],[0,1,0],[122,84,48]); }
+    }
+    if (land && pitD[i] && pitFill[i]>0){ // v10: a dug pond filling up
+      const wy=t+pitFill[i]*(pitD[i]-.3);
+      quad(WP,WN,WC,WI,null,[[x,wy,z+1],[x+1,wy,z+1],[x+1,wy,z],[x,wy,z]],[0,1,0],[80,150,200]);
+    }
+    if (!land){
+      let wc=depth[i]===0?[108,176,214]:depth[i]===1?[74,146,200]:[56,120,182];
+      const edge=(x>0&&terr[i-1]!==WATER)||(x<W-1&&terr[i+1]!==WATER)||(z>0&&terr[i-W]!==WATER)||(z<H-1&&terr[i+W]!==WATER);
+      if (edge) wc=[150,205,228];                                           // v14: pale shallows at the water's edge
+      for (let qz=0;qz<2;qz++) for (let qx=0;qx<2;qx++){ const X=x+qx*.5, Z=z+qz*.5;
+        quad(WP,WN,WC,WI,null,[[X,WATER_Y,Z+.5],[X+.5,WATER_Y,Z+.5],[X+.5,WATER_Y,Z],[X,WATER_Y,Z]],[0,1,0],wc); }
+    }
+  }
+  const key=cx+cz*NCX, old=chunks.map.get(key);
+  if (old) for (const m of [old.land,old.water]) if (m){ scene.remove(m); m.geometry.dispose(); }
+  const mk=(P_,N_,C_,I_,U_,mat)=>{
+    if (!I_.length) return null;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(P_,3));
+    g.setAttribute('normal',new THREE.Float32BufferAttribute(N_,3));
+    g.setAttribute('color',new THREE.Float32BufferAttribute(C_,3));
+    if (U_) g.setAttribute('uv',new THREE.Float32BufferAttribute(U_,2));
+    g.setIndex(I_); g.computeBoundingSphere();
+    const m=new THREE.Mesh(g,mat); scene.add(m); return m;
+  };
+  const land=mk(P,Nn,Cc,I,U,landMat); if (land){ land.castShadow=true; land.receiveShadow=true; }
+  const water=mk(WP,WN,WC,WI,null,waterMat); if (water){ water.receiveShadow=true; water.renderOrder=1; }
+  chunks.map.set(key,{land,water});
+}
+/* ---------------- Plants: grass tufts, scrub, and voxel trees ---------------- */
+const hexC=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const TREE_PAL={
+  gum:    {trunk:'#d8d0bf', leaf:['#6a8f5b','#8fb27a']},
+  leafy:  {trunk:'#6b4a2f', leaf:['#3f7d3d','#62a04f']},
+  acacia: {trunk:'#5e4430', leaf:['#5f8538','#7ea34c']},
+  palm:   {trunk:'#8a6a45', leaf:['#4f8a3c','#6aa84f']},
+  baobab: {trunk:'#a88a6e', leaf:['#6f9a4a','#8fb865']},
+  conifer:{trunk:'#5a3f2a', leaf:['#35613e','#4a7d52']},
+};
+for (const k in TREE_PAL){ const t=TREE_PAL[k]; t.trunk=hexC(t.trunk); t.leaf=t.leaf.map(hexC); }
+function treeSpecies(i,x,y){ // same rule as v12
+  const r=hash2(x,y,DS+13);
+  if (wdist[i]<=3 && r<.55) return 'palm';
+  if (hgt[i]===2 && r<.7) return 'conifer';
+  return r<.4?'gum': r<.62?'leafy': r<.9?'acacia':'baobab';
+}
+/* v2: plants grow in clumps. Groves of trees and patches of scrub sit in open grassland,
+   and not every tile shows a plant, so you can see animals from above. The growth rules are unchanged:
+   this only decides what each tile LOOKS like. */
+const smooth=(a,b,v)=>{ const t=clamp((v-a)/(b-a),0,1); return t*t*(3-2*t); };
+function groveAt(x,z){ return fbm(x/15,z/15,DS*3+51,3); }
+function bushAt(x,z){ return fbm(x/8,z/8,DS*3+57,3); }
+function hasTree(i,x,z){ if (treeForce[i]) return true; return hash2(x,z,DS+41) < .02+.62*smooth(.49,.61,groveAt(x,z)); }   // v14: bigger, fuller groves and more lone trees
+function hasBush(i,x,z){ return hash2(x,z,DS+43) < .015+.5*smooth(.52,.62,bushAt(x,z)); }
+function addPlants(i,x,z,t,P,Nn,Cc,I,U,quad){
+  const st=stage[i];
+  { // v14: small details on the ground
+    const d1=hash2(x,z,DS+61), d2=hash2(x,z,DS+62), d3=hash2(x,z,DS+63);
+    if (st===0 && !scar[i]){
+            if (d1<(terr[i]===ROCK?.1:.05)){ const g=terr[i]===ROCK?[132,126,116]:[150,120,86], sz=terr[i]===ROCK?.26+d2*.2:.1+d2*.08;
+        (function(){ const x0=x+.2+d2*.6-sz/2, z0=z+.2+d3*.6-sz/2;
+          const c=g, top=[c[0]*1.1,c[1]*1.1,c[2]*1.1], y0=t, y1=t+sz*.7;
+          quad(P,Nn,Cc,I,U,[[x0,y1,z0+sz],[x0+sz,y1,z0+sz],[x0+sz,y1,z0],[x0,y1,z0]],[0,1,0],top);
+          quad(P,Nn,Cc,I,U,[[x0+sz,y0,z0+sz],[x0+sz,y0,z0],[x0+sz,y1,z0],[x0+sz,y1,z0+sz]],[1,0,0],c);
+          quad(P,Nn,Cc,I,U,[[x0,y0,z0],[x0,y0,z0+sz],[x0,y1,z0+sz],[x0,y1,z0]],[-1,0,0],c);
+          quad(P,Nn,Cc,I,U,[[x0,y0,z0+sz],[x0+sz,y0,z0+sz],[x0+sz,y1,z0+sz],[x0,y1,z0+sz]],[0,0,1],c);
+          quad(P,Nn,Cc,I,U,[[x0+sz,y0,z0],[x0,y0,z0],[x0,y1,z0],[x0+sz,y1,z0]],[0,0,-1],c); })();
+      }
+    }
+  }
+  if (st===0) return;
+  const bx=(x0,y0,z0,x1,y1,z1,c)=>{ // box with 5 faces (no bottom); top a little lighter
+    const top=[c[0]*1.08,c[1]*1.08,c[2]*1.08];
+    quad(P,Nn,Cc,I,U,[[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]],[0,1,0],top);
+    quad(P,Nn,Cc,I,U,[[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1]],[1,0,0],c);
+    quad(P,Nn,Cc,I,U,[[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]],[-1,0,0],c);
+    quad(P,Nn,Cc,I,U,[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]],[0,0,1],c);
+    quad(P,Nn,Cc,I,U,[[x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0]],[0,0,-1],c);
+  };
+  const cb=(cx,y0,cz,w,h,d,c)=>bx(cx-w/2,y0,cz-d/2,cx+w/2,y0+h,cz+d/2,c);
+  const r1=hash2(x,z,DS+21), r2=hash2(x,z,DS+22), r3=hash2(x,z,DS+23), r4=hash2(x,z,DS+24), r5=hash2(x,z,DS+25);
+  const shade=(c,k)=>[c[0]*k,c[1]*k,c[2]*k];
+  const tufts=(p,hmax)=>{ // plain grass: a few short blades
+    if (r1>=p) return;
+    const g=shade(PAL.g1,.88+r2*.16);
+    cb(x+.2+r2*.6,t,z+.2+r3*.6,.12,.14+r1*hmax,.12,g);
+    if (r4<.5) cb(x+.25+r3*.5,t,z+.3+r5*.5,.1,.1+r4*hmax*.6,.1,shade(g,1.08));
+  };
+  const flowers=()=>{ // v14: wildflowers dotted through the grass
+    const f=hash2(x,z,DS+71); if (f>.16) return;
+    const col=[[240,214,80],[236,120,150],[240,240,236],[176,130,220],[240,150,70]][(hash2(x,z,DS+72)*5)|0];
+    const fx=x+.25+hash2(x,z,DS+73)*.5, fz=z+.25+hash2(x,z,DS+74)*.5;
+    cb(fx,t,fz,.04,.22,.04,[70,120,50]); cb(fx,t+.2,fz,.13,.08,.13,col);
+    if (f<.07){ cb(fx+.18,t,fz-.12,.04,.16,.04,[70,120,50]); cb(fx+.18,t+.15,fz-.12,.11,.07,.11,col); }
+  };
+  if (st===1){ tufts(.45,.2); flowers(); return; }
+  if (st===2){
+    if (!hasBush(i,x,z)){ tufts(.7,.3); flowers(); return; }
+    const g=shade(PAL.g2,.9+r1*.16), n=1+(r2<.45?1:0);        // v2: smaller bushes, one or two per tile
+    for (let k=0;k<n;k++){
+      const a=hash2(x*3+k,z,DS+31), b=hash2(x,z*3+k,DS+32), sz=.22+hash2(x+k,z+k,DS+33)*.16;
+      cb(x+.25+a*.5,t,z+.25+b*.5,sz,sz*.8,sz,shade(g,.9+a*.2));
+    }
+    return;
+  }
+  // forest stage: a tree only where the grove pattern puts one; grass everywhere else
+  if (!hasTree(i,x,z)){ tufts(.75,.34); flowers(); return; }
+  const sp=treeSpecies(i,x,z), pal=TREE_PAL[sp], k=[.6,.8,1][treeB[i]];
+  const hv=.85+r3*.3, cw=.85+r4*.3;                              // each tree a little different
+  const cx=x+.5+(r1-.5)*.4, cz=z+.5+(r2-.5)*.4, L0=pal.leaf[0], L1=pal.leaf[1], T=pal.trunk;
+  const L=(c)=>shade(c,.92+r5*.16), HI=(c)=>shade(c,1.18);
+  if (sp!=='palm') cb(cx,t,cz,sp==='baobab'?.7*k:.3,.12,sp==='baobab'?.7*k:.3,shade(T,.85));        // v14: root flare
+  if (sp==='gum'){                        // tall pale trunk, open puffs of leaves up top
+    const H=2.7*k*hv;
+    cb(cx,t,cz,.16,H,.16,T); cb(cx+.22*k,t+H*.65,cz,.36*k,.1,.1,T);
+    cb(cx-.25*k*cw,t+H-.15,cz+.1,.75*k*cw,.45*k,.7*k*cw,L(L0));
+    cb(cx+.3*k*cw,t+H*.8,cz-.15,.6*k*cw,.4*k,.6*k*cw,L(L1));
+    cb(cx,t+H+.2*k,cz-.05,.55*k*cw,.35*k,.55*k*cw,L(L0));
+    cb(cx-.05,t+H+.55*k,cz-.05,.35*k*cw,.08,.35*k*cw,HI(L0));
+  } else if (sp==='leafy'){                // round crown on a clear trunk; two shapes
+    const H=2.0*k*hv;
+    cb(cx,t,cz,.22,H,.22,T);
+    cb(cx+.2*k,t+H*.7,cz,.4*k,.08,.08,T); cb(cx-.18*k,t+H*.8,cz+.05,.08,.08,.36*k,T);          // branches
+    if (r5<.5){ cb(cx,t+H-.2*k,cz,1.35*k*cw,.8*k,1.35*k*cw,L(L0)); cb(cx,t+H+.55*k,cz,.85*k*cw,.4*k,.85*k*cw,L(L1)); cb(cx+.08,t+H+.95*k,cz-.05,.5*k*cw,.1,.5*k*cw,HI(L1));
+      cb(cx+.55*k*cw,t+H+.05*k,cz+.2,.4*k,.4*k,.4*k,L(L1)); }
+    else { cb(cx,t+H-.3*k,cz,1.0*k*cw,1.3*k,1.0*k*cw,L(L0)); cb(cx+.15,t+H+.95*k,cz,.6*k*cw,.35*k,.6*k*cw,L(L1)); cb(cx+.15,t+H+1.3*k,cz,.36*k*cw,.08,.36*k*cw,HI(L1)); }
+  } else if (sp==='acacia'){               // thin trunk, flat umbrella canopy
+    const H=2.3*k*hv;
+    cb(cx,t,cz,.14,H,.14,T); cb(cx+.2*k,t+H*.75,cz,.4*k,.08,.08,T);
+    cb(cx,t+H,cz,1.8*k*cw,.24*k,1.5*k*cw,L(L0)); cb(cx-.1,t+H+.22*k,cz,1.15*k*cw,.18*k,.95*k*cw,L(L1)); cb(cx-.1,t+H+.4*k,cz,.6*k*cw,.06,.5*k*cw,HI(L1));
+    cb(cx-.35*k,t+H*.8,cz,.06,.3*k,.06,T);
+  } else if (sp==='palm'){                 // tall leaning trunk with a cross of fronds
+    const H=2.9*k*hv, lean=(r5-.5)*.5*k;
+    cb(cx,t,cz,.17,H*.4,.17,T); cb(cx+lean*.5,t+H*.4,cz,.16,H*.35,.16,T); cb(cx+lean,t+H*.75,cz,.15,H*.25,.15,T);
+    const tx=cx+lean, y=t+H;
+    cb(tx,y,cz,1.7*k*cw,.08,.28*k,L(L0)); cb(tx,y,cz,.28*k,.08,1.7*k*cw,L(L0));
+    cb(tx,y-.12,cz,1.2*k*cw,.08,.22*k,L(L1)); cb(tx,y+.06,cz,.45*k,.2,.45*k,L(L1));
+  } else if (sp==='baobab'){               // fat trunk, stubby branches, small clumps of leaves
+    const H=1.9*k*hv;
+    cb(cx,t,cz,.55*k,H,.55*k,T);
+    cb(cx-.3*k,t+H,cz,.12,.35*k,.12,T); cb(cx+.3*k,t+H,cz+.1,.12,.4*k,.12,T); cb(cx,t+H,cz-.25*k,.12,.3*k,.12,T);
+    cb(cx-.3*k,t+H+.3*k,cz,.45*k*cw,.28*k,.45*k*cw,L(L0)); cb(cx+.3*k,t+H+.35*k,cz+.1,.45*k*cw,.28*k,.45*k*cw,L(L1)); cb(cx,t+H+.25*k,cz-.25*k,.4*k*cw,.25*k,.4*k*cw,L(L0));
+  } else {                                 // conifer: short trunk, tall narrow tiers
+    const H=.8*k*hv;
+    cb(cx,t,cz,.18,H,.18,T);
+    const tiers=[[1.1,.6],[.85,.6],[.6,.55],[.34,.5]];
+    let y=t+H*.8;
+    for (let q=0;q<tiers.length;q++){ const [w,h]=tiers[q]; cb(cx,y,cz,w*k*cw,h*k,w*k*cw,L(q===3?L1:L0)); cb(cx,y+h*k-.02,cz,w*k*cw*.7,.05,w*k*cw*.7,HI(L0)); y+=h*k*.85; }
+    cb(cx,y,cz,.1,.2*k,.1,L(L1));                                                              // tip
+  }
+}
+function buildWorld(){ chunks.clear(); for (let cz=0;cz<NCZ;cz++) for (let cx=0;cx<NCX;cx++) buildChunk(cx,cz); }
+function flushChunks(ms){ // rebuild changed chunks within a small time budget each frame
+  const t0=performance.now();
+  for (const k of chunks.dirty){ buildChunk(k%NCX,(k/NCX)|0); chunks.dirty.delete(k); if (performance.now()-t0>ms) break; }
+}
+
+/* ---------------- Clouds (flat blocks, like the references) ---------------- */
+const clouds=[];
+{
+  const mat=new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x8a9aa6,transparent:true,opacity:.92});
+  var cloudUnder=new THREE.MeshLambertMaterial({color:0xc9d3dc,emissive:0x5a6a78,transparent:true,opacity:.9});
+  const r=mulberry32(77);
+  for (let k=0;k<46;k++){
+    const g=new THREE.Group(), n=2+(r()*4|0);
+    for (let q=0;q<n;q++){
+      const b=new THREE.Mesh(new THREE.BoxGeometry(4+r()*12,1.6,3+r()*9),mat);
+      b.position.set((r()-.5)*14,0,(r()-.5)*9); g.add(b);
+      const u=new THREE.Mesh(b.geometry,cloudUnder); u.scale.set(.96,.35,.96); u.position.set(b.position.x,-.95,b.position.z); g.add(u); // v14: soft grey underside
+    }
+    g.position.set(-80+r()*360,40+r()*10,-80+r()*360); g.userData.s=.6+r()*.8;
+    scene.add(g); clouds.push(g);
+  }
+}
+
+/* ---------------- Instanced cubes: water shots, particles, wet ground ---------------- */
+const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _s=new THREE.Vector3(), _p=new THREE.Vector3(), _c=new THREE.Color();
+function makeInst(max,mat,shadow,colored){
+  const m=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),mat,max);
+  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.castShadow=!!shadow; m.frustumCulled=false;
+  if (colored) for (let k=0;k<max;k++) m.setColorAt(k,_c.set(0xffffff)); // must happen while count = max
+  m.count=0; scene.add(m); return m;
+}
+const blobMesh=makeInst(256,new THREE.MeshLambertMaterial({color:0x9fdcff,emissive:0x1d4f73}),true);
+const partMesh=makeInst(800,new THREE.MeshLambertMaterial({color:0xffffff}),false,true);
+const wetMesh=makeInst(4000,new THREE.MeshBasicMaterial({color:0x1c1208,transparent:true,opacity:.22,depthWrite:false}),false);
+function putInst(mesh,n,x,y,z,sx,sy,sz,col){
+  if (n>=mesh.instanceMatrix.count) return n; // instanceMatrix.count is the capacity
+  _p.set(x,y,z); _s.set(sx,sy,sz); _m.compose(_p,_q,_s); mesh.setMatrixAt(n,_m);
+  if (col!==undefined) mesh.setColorAt(n,_c.set(col));
+  return n+1;
+}
+const PART_COL={leaf:0x6aa84f, drop:0x8fd0f5, sparkle:0xffe27a, smoke:0x9a948c, ring:0xcfeeff, chip:0x8a6a3e, heart:0xff7aa2};
+/* particles, same behaviour as v12: x,y are map coords, z is height above where they started */
+function burst(x,y,n,type){
+  const gz=standY(x,y);
+  for (let k=0;k<n;k++){
+    const a=R()*TAU, sp=.8+R()*2.2;
+    const p={x,y,z:.2,gz,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp*.6,vz:2+R()*3,life:.6+R()*.6,type};
+    if (type==='drop'){ p.vx*=.6; p.vy*=.6; p.vz=1.5+R()*2; p.life=.35+R()*.3; }
+    if (type==='heart'){ p.vx*=.2; p.vy=0; p.vz=1.4; p.life=1.1; }
+    if (type==='chip'){ p.life=.5; }
+    if (type==='ring'){ p.vx=p.vy=p.vz=0; p.z=0; p.life=.55; }
+    if (type==='smoke'){ p.vx=(R()-.5)*.3; p.vy=0; p.vz=.9; p.z=.4; p.life=1.8; }
+    p.max=p.life; parts.push(p);
+  }
+}
+function drawInst(){
+  let n=0;
+  for (const b of blobs){
+    const y=b.hz+(b.gz-b.hz)*Math.min(b.t,1)+b.z*2.2; // arcs from the gun down to the ground
+    const o=.08+.42*Math.min(b.t,1);  // v4: two droplets that spread out to land on the two blocks
+    for (const q of [-1,1]) n=putInst(blobMesh,n,b.x+b.axx*q*o,y,b.y+b.axy*q*o,.3,.3,.3);
+  }
+  blobMesh.count=n; blobMesh.instanceMatrix.needsUpdate=true;
+  n=0;
+  for (const p of parts){
+    const f=p.life/p.max;
+    if (p.type==='ring'){ const r=.6+(1-f)*1.4; n=putInst(partMesh,n,p.x,p.gz+.04,p.y,r,.04,r,PART_COL.ring); continue; }
+    const sz=p.type==='smoke'?.28+(1-f)*.3:p.type==='sparkle'?.12:.1;
+    n=putInst(partMesh,n,p.x,p.gz+p.z,p.y,sz,sz,sz,PART_COL[p.type]||0xffffff);
+  }
+  partMesh.count=n; partMesh.instanceMatrix.needsUpdate=true; if (partMesh.instanceColor) partMesh.instanceColor.needsUpdate=true;
+}
+let wetT=0;
+function drawWet(){ // recently watered ground looks darker, like v12
+  let n=0;
+  for (let i=0;i<N && n<4000;i++){
+    if (moist[i]<.12 || terr[i]===WATER) continue;
+    const x=i%W, y=(i/W)|0;
+    n=putInst(wetMesh,n,x+.5,topOf(i)+.012,y+.5,1,.01,1);
+  }
+  wetMesh.count=n; wetMesh.instanceMatrix.needsUpdate=true;
+}
+
+// aim marker: outline of the targeted block top
+const aimMark=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2.04,.06,1.02)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.9}));
+scene.add(aimMark);
+
+/* ---------------- Input ---------------- */
+const keys={}; const mouse={x:innerWidth/2,y:innerHeight/2,down:false,rdrag:false,lx:0};
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if ((e.code==='Escape'||e.code==='KeyP') && (state==='play'||state==='pause')){ state==='play'?pause():resume(); }
+  if (e.code==='Equal'||e.code==='NumpadAdd') setZoom(zoomIdx+1);
+  if (e.code==='Minus'||e.code==='NumpadSubtract') setZoom(zoomIdx-1);
+  if (e.code.startsWith('Arrow')||e.code==='Space') e.preventDefault();
+  // v6c: scroll-wheel click (or Space) = jump; Shift = get on or off an animal; Alt = tools; 1 / 2 pick a tool
+  if (e.code==='Space' && !e.repeat) jumpAction();
+  if ((e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat) rideAction();
+  if (e.key==='Alt'){ e.preventDefault(); if (!e.repeat && state==='play') toggleInv(); }
+  if (e.code==='Digit1' && state==='play') setTool('gun');
+  if (e.code==='Digit2' && state==='play') setTool('shovel');
+  if (e.code==='KeyH' && (state==='play'||state==='pause')) showHelp(); // v8: how to play
+});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+addEventListener('blur',()=>{for (const k in keys) keys[k]=false; mouse.down=false; if (state==='play') pause();});
+cv.addEventListener('mousemove',e=>{
+  if (mouse.rdrag){ cam3.yaw-=(e.clientX-mouse.lx)*.006; tilt((e.clientY-mouse.ly)*.005); mouse.lx=e.clientX; mouse.ly=e.clientY; } // v8: drag up/down to tilt
+  mouse.x=e.clientX; mouse.y=e.clientY;
+});
+cv.addEventListener('mousedown',e=>{ if (e.button===1){ e.preventDefault(); jumpAction(); } // v6c: scroll-wheel click jumps
+  if (e.button===0) mouse.down=true; if (e.button===2){ mouse.rdrag=true; mouse.lx=e.clientX; mouse.ly=e.clientY; mouse.rx0=e.clientX; mouse.ry0=e.clientY; } });
+addEventListener('mouseup',e=>{ if (e.button===0) mouse.down=false;
+  if (e.button===2){ mouse.rdrag=false; // a right-click without dragging drops dirt with the pick-shovel
+    if (state==='play' && player.tool==='shovel' && Math.hypot(e.clientX-mouse.rx0,e.clientY-mouse.ry0)<6) shovelPlace(); } });
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('auxclick',e=>{ if (e.button===1) e.preventDefault(); });
+addEventListener('wheel',e=>{ if (state!=='play') return; setZoom(zoomIdx+(e.deltaY<0?1:-1)); },{passive:true});
+
+/* ---------------- 3D camera ---------------- */
+const DISTS=[46,38,30,24,18,15,12.5,10.5,9,7.5]; // v8: two more zoom-out levels (zoomIdx 4 = default)
+const cam3={yaw:Math.PI*.25, pitch:.78, dist:DISTS[4], fx:0, fy:0, fz:0};
+const PITCH_MIN=.06, PITCH_MAX=1.35; // v8: tilt from almost ground level (looking up at the sky) to straight down
+function tilt(d){ cam3.pitch=clamp(cam3.pitch+d,PITCH_MIN,PITCH_MAX); }
+function setZoom(k){ zoomIdx=clamp(k,0,DISTS.length-1); }
+function placeCamera(dt){
+  const k=1-Math.pow(.0005,dt);
+  cam3.dist+=(DISTS[zoomIdx]-cam3.dist)*k;
+  cam3.fx+=(player.x-cam3.fx)*k; cam3.fz+=(player.y-cam3.fz)*k; cam3.fy+=(player.z+1-cam3.fy)*k;
+  const cp=Math.cos(cam3.pitch), d=cam3.dist;
+  let cx=cam3.fx+Math.sin(cam3.yaw)*cp*d, cy=cam3.fy+Math.sin(cam3.pitch)*d, cz=cam3.fz+Math.cos(cam3.yaw)*cp*d;
+  // v8: keep the camera above the ground when it's tilted low
+  const gi=tileAt(cx,cz), ground=(gi>=0?(terr[gi]===WATER?WATER_Y:topOf(gi)):LAND0)+1.2;
+  if (cy<ground) cy=ground;
+  camera.position.set(cx,cy,cz);
+  // v8: tilted right down low, the view lifts up towards the sky (to watch the eagle, the clouds...)
+  const up=Math.max(0,.5-cam3.pitch)*d*.8;
+  camera.lookAt(cam3.fx,cam3.fy+up,cam3.fz);
+  scene.fog.near=60+d*1.2; scene.fog.far=170+d*2.4;
+  sky.position.set(cx,0,cz); // the sky follows the camera
+  cam.x=cam3.fx; cam.y=cam3.fz;
+  sun.position.set(cam3.fx+55,95,cam3.fz+35); sun.target.position.set(cam3.fx,0,cam3.fz);
+}
+// mouse -> ground point, by marching the ray through the height field
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function screenToWorld(sx,sy){
+  const rc=cv.getBoundingClientRect(); // v7: the game view sits beside the side panel
+  ndc.set((sx-rc.left)/rc.width*2-1,-((sy-rc.top)/rc.height)*2+1); ray.setFromCamera(ndc,camera);
+  const o=ray.ray.origin, d=ray.ray.direction;
+  for (let s=0;s<260;s+=.15){
+    const x=o.x+d.x*s, y=o.y+d.y*s, z=o.z+d.z*s;
+    const i=tileAt(x,z);
+    if (i>=0){ const t=terr[i]===WATER?WATER_Y:topOf(i); if (y<=t) return {x,y:z,h:t}; }
+    else if (y<LAND0) break;
+  }
+  // missed the island. Looking down: project onto the player's level. Looking up at the sky: aim that way at full range
+  if (d.y<-.02){ const t=(player.z-o.y)/d.y; return {x:o.x+d.x*t,y:o.z+d.z*t,h:player.z}; }
+  const hl=Math.hypot(d.x,d.z)||1, ax=player.x+d.x/hl*CFG.RANGE, ay=player.y+d.z/hl*CFG.RANGE;
+  return {x:ax,y:ay,h:standY(ax,ay)};
+}
+
+
+// v4: a shot lands on two blocks in a line: the block you aim at and the next one along the shot
+function shotTarget(ax,ay){
+  const tx=Math.floor(ax), ty=Math.floor(ay), dx=ax-player.x, dy=ay-player.y;
+  const alongX=Math.abs(dx)>=Math.abs(dy), sx=alongX?(dx>=0?1:-1):0, sy=alongX?0:(dy>=0?1:-1);
+  return {cx:tx+.5+sx*.5, cy:ty+.5+sy*.5, axx:alongX?1:0, axy:alongX?0:1};
+}
+function fire(){
+  let dx=aim.x-player.x, dy=aim.y-player.y, d=Math.hypot(dx,dy)||.001;
+  if (d>CFG.RANGE){ dx*=CFG.RANGE/d; dy*=CFG.RANGE/d; d=CFG.RANGE; }
+  const sx=player.x+Math.cos(player.aim)*.5, sy=player.y+Math.sin(player.aim)*.5;
+  const T=shotTarget(player.x+dx,player.y+dy);
+  blobs.push({sx,sy,tx:T.cx,ty:T.cy,axx:T.axx,axy:T.axy,x:sx,y:sy,z:0,t:0,dist:Math.max(d,.6),arc:.35+d*.09,hz:player.z+1.2,gz:standY(T.cx,T.cy)});
+  player.water-=CFG.SHOT_COST;
+  burst(sx,sy,2,'drop');
+}
+function bigSplash(b){ // soak both target blocks fully, plus a lighter splash around them
+  const cx=b.tx, cy=b.ty;
+  for (const s of [-.5,.5]) splash(cx+b.axx*s,cy+b.axy*s,.6,CFG.SPLASH_PROG,true);
+  splash(cx,cy,CFG.SPLASH_R,CFG.SPLASH_PROG*.5,true);
+  for (const p of poachers) if (!p.dead && !p.caught && Math.hypot(p.x-cx,p.y-cy)<1) convertPoacher(p); // anyone standing in the target is hit
+  splashCrates(cx,cy,1.5); // v7: spraying a crate frees the animal
+  for (const s of [-.5,.5]){ const i=tileAt(cx+b.axx*s,cy+b.axy*s); if (i>=0 && pitD[i] && terr[i]!==WATER){ fillPond(i); break; } } // v10: one shot = one lot of water into a dug pond
+  burst(cx,cy,14,'drop'); burst(cx,cy,1,'ring');
+}
+function blocked(x,y,r){
+  for (const [ox,oy] of [[-r,-r],[r,-r],[-r,r],[r,r]]){ const i=tileAt(x+ox,y+oy); if (i<0||terr[i]===WATER) return true; }
+  return false;
+}
+function tileAt(x,y){ const tx=Math.floor(x), ty=Math.floor(y); if (tx<0||ty<0||tx>=W||ty>=H) return -1; return ty*W+tx; }
+let aim={x:0,y:0,h:0}, lastEmptyToast=-99;
+
+/* ---------------- Entities ---------------- */
+// hab: land = stays on green ground, air = flies anywhere, water = lakes and shores, trees = prefers woodland
+const ANIMALS={
+  roo:     {name:'kangaroo',  spd:2.6, size:1.25, w:4, hab:'land'},
+  wombat:  {name:'wombat',    spd:1.1, size:1.0,  w:3, hab:'land'},
+  emu:     {name:'emu',       spd:2.0, size:1.3,  w:2, hab:'land'},
+  echidna: {name:'echidna',   spd:0.6, size:.85,  w:2, hab:'land'},
+  bird:    {name:'bird',      spd:3.2, size:.8,   w:4, hab:'air'},
+  croc:    {name:'crocodile', spd:0.8, size:1.5,  w:2, hab:'water', sh:.6},
+  elephant:{name:'elephant',  spd:1.0, size:2.2,  w:1, hab:'land', sh:.45},
+  camel:   {name:'camel',     spd:1.5, size:1.7,  w:2, hab:'land', sh:.35},
+  lion:    {name:'lion',      spd:1.8, size:1.3,  w:2, hab:'land'},
+  monkey:  {name:'monkey',    spd:1.6, size:.9,   w:3, hab:'trees'},
+  bear:    {name:'bear',      spd:1.3, size:1.5,  w:2, hab:'land', sh:.38},
+  giraffe: {name:'giraffe',   spd:1.4, size:1.45, w:1, hab:'land'},
+  horse:   {name:'horse',     spd:2.4, size:1.6,  w:2, hab:'land', sh:.35},
+  rhino:   {name:'rhino',     spd:1.0, size:1.7,  w:1, hab:'land', sh:.42},
+  deer:    {name:'deer',      spd:2.2, size:1.3,  w:3, hab:'land'},
+  tiger:   {name:'tiger',     spd:1.9, size:1.35, w:1, hab:'land'},
+  koala:   {name:'koala',     spd:.5,  size:.85,  w:2, hab:'trees'},
+  zebra:   {name:'zebra',     spd:2.3, size:1.6,  w:2, hab:'land', sh:.35},
+  hippo:   {name:'hippo',     spd:.7,  size:1.6,  w:1, hab:'water', sh:.45},
+  fox:     {name:'fox',       spd:2.0, size:.95,  w:2, hab:'land'},
+  beaver:  {name:'beaver',    spd:1.2, size:.9,   w:2, hab:'beaver'}, // walks to a lake, then digs streams and ponds
+};
+const ANIMAL_KEYS=Object.keys(ANIMALS);
+function pickAnimal(ok){
+  const ks=ANIMAL_KEYS.filter(k=>!ok||ok(k));
+  let tot=0; for (const k of ks) tot+=ANIMALS[k].w;
+  let r=R()*tot; for (const k of ks){ r-=ANIMALS[k].w; if (r<=0) return k; } return ks[0]||'roo';
+}
+function spawnAnimal(x,y,type,scale){
+  const a={x,y,type,vx:0,vy:0,t:R()*2,face:R()<.5?-1:1,scale,hop:0,fert:2+R()*3,z:0,v:(R()*4)|0,drinks:0,dry:0};
+  animals.push(a); joinHerd(a); return a;
+}
+const HERD_TYPES=new Set(['zebra','elephant','horse','giraffe','deer','monkey','roo','rhino']);
+function joinHerd(a){
+  if (!HERD_TYPES.has(a.type)) return;
+  let best=null, bd=25;
+  for (const h of herds){ if (h.type!==a.type) continue; const d=Math.hypot(h.cx-a.x,h.cy-a.y); if (d<bd){ bd=d; best=h; } }
+  if (!best){ best={type:a.type,x:a.x,y:a.y,cx:a.x,cy:a.y,n:1,t:5+R()*10}; herds.push(best); }
+  a.herd=best;
+  const r=.7+R()*1.8, an=R()*TAU; a.hox=Math.cos(an)*r; a.hoy=Math.sin(an)*r*.7; // own spot within the group
+}
+function moveHerd(h){ // pick the group's next grazing spot, favouring quiet ground with water access
+  let best=null, bs=1e9;
+  for (let k=0;k<10;k++){
+    const ang=R()*TAU, dist=R()<.5?14+R()*26:3+R()*6; // v6: herds range further
+    const x=h.cx+Math.cos(ang)*dist, y=h.cy+Math.sin(ang)*dist, j=tileAt(x,y);
+    if (!goodHabitat(h.type,j)) continue;
+    const sc=densAt(x,y)*2.5+dist*.02+R()*1.5-(reach[j]?1.2:0);
+    if (sc<bs){ bs=sc; best=[x,y]; }
+  }
+  if (best){ h.x=best[0]; h.y=best[1]; } else { h.x=h.cx; h.y=h.cy; }
+}
+function hasWater(a){
+  const hb=ANIMALS[a.type].hab; if (hb==='air'||hb==='water'||hb==='beaver') return true;
+  const j=tileAt(a.x,a.y); return j>=0 && (reach[j]===1 || shore[j]===1);
+}
+function computeReach(){
+  reach.fill(0); const q=[];
+  for (let i=0;i<N;i++) if (terr[i]!==WATER && shore[i] && stage[i]>=1){ reach[i]=1; q.push(i); }
+  for (let h=0;h<q.length;h++){
+    const i=q[h], x=i%W;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]){
+      if (j<0||j>=N||reach[j]||terr[j]===WATER||stage[j]<1) continue;
+      reach[j]=1; q.push(j);
+    }
+  }
+}
+function plural(n){ return n==='deer'?'deer': n==='fox'?'foxes': n+'s'; }
+function goodHabitat(type,j){
+  if (j<0) return false;
+  const h=ANIMALS[type].hab;
+  if (h==='air') return true;
+  if (h==='water'||h==='beaver') return terr[j]===WATER||shore[j]===1;
+  if (terr[j]===WATER) return false;
+  return h==='trees' ? stage[j]>=2 : stage[j]>0;
+}
+function animalBlocked(type,cur,nxt){
+  if (nxt<0) return true;
+  const h=ANIMALS[type].hab;
+  if (h==='air') return false;
+  if ((h==='land'||h==='trees') && terr[nxt]===WATER) return true;
+  return !goodHabitat(type,nxt) && cur>=0 && goodHabitat(type,cur);
+}
+/* animals spread out: they pick destinations in less crowded habitat and slide along corridor edges to reach them */
+const DC=10, DGW=Math.ceil(W/DC), DGH=Math.ceil(H/DC), dens=new Uint16Array(DGW*DGH); let densT=0;
+function densAt(x,y){ const cx=(x/DC)|0, cy=(y/DC)|0; if (cx<0||cy<0||cx>=DGW||cy>=DGH) return 99; return dens[cy*DGW+cx]; }
+function updateDensity(){
+  dens.fill(0); for (const h of herds){ h.n=0; h.sx=0; h.sy=0; }
+  for (const a of animals){
+    if (a.herd){ a.herd.n++; a.herd.sx+=a.x; a.herd.sy+=a.y; }
+    if (a.type==='bird') continue; const cx=(a.x/DC)|0, cy=(a.y/DC)|0; if (cx>=0&&cy>=0&&cx<DGW&&cy<DGH) dens[cy*DGW+cx]++;
+  }
+  herds=herds.filter(h=>h.n>0);
+  for (const h of herds){ h.cx=h.sx/h.n; h.cy=h.sy/h.n; }
+}
+function pickRoam(a){
+  const A=ANIMALS[a.type]; let best=null, bs=1e9;
+  if (a.herd){ // herd animals graze around their group's spot
+    const h=a.herd; let x=h.x+a.hox+(R()-.5)*.8, y=h.y+a.hoy+(R()-.5)*.8;
+    if (!goodHabitat(a.type,tileAt(x,y))){ x=h.x; y=h.y; }
+    a.tx=x; a.ty=y; return;
+  }
+  const far=R()<.35;
+  for (let k=0;k<8;k++){
+    const ang=R()*TAU, dist=far?14+R()*24:2+R()*6;
+    const x=a.x+Math.cos(ang)*dist, y=a.y+Math.sin(ang)*dist, j=tileAt(x,y);
+    if (!goodHabitat(a.type,j)) continue;
+    const sc=densAt(x,y)*3+dist*.05+R()*1.5;
+    if (sc<bs){ bs=sc; best=[x,y]; }
+  }
+  if (best){ a.tx=best[0]; a.ty=best[1]; }
+  else { const ang=R()*TAU, sp=A.spd*(.6+.4*a.scale); a.vx=Math.cos(ang)*sp; a.vy=Math.sin(ang)*sp; a.tx=null; }
+}
+
+/* ---------------- Beavers ---------------- */
+function nearestWater(x,y){
+  const cx=Math.floor(x), cy=Math.floor(y);
+  for (let r=0;r<=90;r++){
+    let best=-1, bd=1e9;
+    const test=(X,Y)=>{ if (X<0||Y<0||X>=W||Y>=H) return; const j=Y*W+X; if (terr[j]===WATER){ const d=(X-cx)**2+(Y-cy)**2; if (d<bd){bd=d;best=j;} } };
+    for (let d=-r;d<=r;d++){ test(cx+d,cy-r); if (r) test(cx+d,cy+r); }
+    for (let d=-r+1;d<=r-1;d++){ test(cx-r,cy+d); test(cx+r,cy+d); }
+    if (best>=0) return best;
+  }
+  return -1;
+}
+function canFlood(j){
+  const x=j%W+.5, y=((j/W)|0)+.5;
+  if (Math.hypot(player.x-x,player.y-y)<1.2) return false;
+  for (const p of poachers) if (Math.hypot(p.x-x,p.y-y)<1.1) return false;
+  for (const a of animals){ const h=ANIMALS[a.type].hab; if (h==='land'||h==='trees'){ if (Math.hypot(a.x-x,a.y-y)<1.1) return false; } }
+  return true;
+}
+function makeWater(i){
+  if (terr[i]===WATER) return;
+  madeWater[i]=1; blaze[i]=0; terr[i]=WATER; stage[i]=0; prog[i]=0; cap[i]=0; ncap[i]=0; scar[i]=0; moist[i]=0; hgt[i]=0; elev[i]=0; pitD[i]=0; pitFill[i]=0; shore[i]=0; depth[i]=0; treeAge[i]=0; soak[i]=0;
+  landCount--;
+  const x=i%W, y=(i/W)|0;
+  for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){
+    const X=x+dx, Y=y+dy; if (X<0||Y<0||X>=W||Y>=H) continue;
+    const j=Y*W+X; if (terr[j]!==WATER) shore[j]=1;
+    markChanged(j);
+  }
+  wdist[i]=0; const q=[i];
+  for (let h=0;h<q.length;h++){
+    const k=q[h], d=wdist[k]; if (d>=8) continue; const kx=k%W, ky=(k/W)|0;
+    for (const [ex,ey] of [[1,0],[-1,0],[0,1],[0,-1]]){ const X=kx+ex, Y=ky+ey; if (X<0||Y<0||X>=W||Y>=H) continue; const j=Y*W+X; if (wdist[j]>d+1){ wdist[j]=d+1; q.push(j); } }
+  }
+  burst(x+.5,y+.5,6,'drop');
+}
+function builders(){ let n=0; for (const a of animals) if (a.type==='beaver'&&(a.bm==='build'||a.bm==='pond')) n++; return n; }
+function endProject(a){ a.bm='rest'; a.rest=120+R()*120; a.goal=null; }
+function startStream(a){
+  if (builders()>=CFG.BEAVER_BUILDERS || beaverWater>=CFG.BEAVER_MAX_WATER){ endProject(a); return; }
+  let sx=0, sy=0, n=0; const bx=Math.floor(a.x), by=Math.floor(a.y);
+  for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const j=tileAt(bx+dx+.5,by+dy+.5); if (j>=0&&terr[j]===WATER){ sx+=dx; sy+=dy; n++; } }
+  const ang=(n?Math.atan2(-sy,-sx):R()*TAU)+(R()-.5)*1.2; // head away from the water
+  let hx=a.x, hy=a.y, head=-1;
+  for (let k=0;k<6;k++){ hx+=Math.cos(ang); hy+=Math.sin(ang); const j=tileAt(hx,hy); if (j<0) break; if (terr[j]!==WATER){ head=j; break; } }
+  if (head<0){ endProject(a); return; }
+  a.dir=ang; a.len=0; a.target=5+((R()*6)|0); a.head=head; a.bm='build'; a.dig=CFG.BEAVER_DIG;
+  if (!beaverToast){ beaverToast=true; toast('A beaver has started digging a stream'); }
+}
+function digStream(a){
+  if (beaverWater>=CFG.BEAVER_MAX_WATER){ endProject(a); return; }
+  if (!canFlood(a.head)) return; // someone is standing there; try again later
+  makeWater(a.head); beaverWater++; a.len++;
+  if (a.len>=a.target){
+    dam[a.head]=1; markChanged(a.head); // log dam at the end of the stream
+    if (R()<CFG.BEAVER_POND_CHANCE){ a.bm='pond'; a.pondC=a.head; a.pondR=1.3+R()*.9; a.dig=CFG.BEAVER_POND_DIG; }
+    else endProject(a);
+    return;
+  }
+  a.dir+=(R()-.5)*1.1; // meander
+  const x=a.head%W, y=(a.head/W)|0;
+  const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({dx,dy,sc:Math.cos(Math.atan2(dy,dx)-a.dir)+R()*.9})).sort((p,q)=>q.sc-p.sc);
+  for (const o of opts){
+    const X=x+o.dx, Y=y+o.dy; if (X<1||Y<1||X>=W-1||Y>=H-1) continue;
+    const j=Y*W+X; if (terr[j]===WATER || (terr[j]===ROCK&&R()<.7)) continue;
+    let wn=0; for (const [ex,ey] of [[1,0],[-1,0],[0,1],[0,-1]]){ const k=(Y+ey)*W+(X+ex); if (k!==a.head && terr[k]===WATER) wn++; }
+    if (wn>0 && a.len<a.target-1) continue; // keep it a single channel until the end
+    a.head=j; return;
+  }
+  endProject(a);
+}
+function digPond(a){
+  if (beaverWater>=CFG.BEAVER_MAX_WATER){ endProject(a); return; }
+  const cx=a.pondC%W+.5, cy=((a.pondC/W)|0)+.5; let best=-1, bd=1e9;
+  for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){
+    const j=tileAt(cx+dx,cy+dy); if (j<0||terr[j]===WATER) continue;
+    const d=Math.hypot(dx,dy)+R()*.5; if (d>a.pondR||d>=bd) continue;
+    const jx=j%W, jy=(j/W)|0; let adj=false;
+    for (const [ex,ey] of [[1,0],[-1,0],[0,1],[0,-1]]){ const X=jx+ex, Y=jy+ey; if (X>=0&&Y>=0&&X<W&&Y<H&&terr[Y*W+X]===WATER) adj=true; }
+    if (adj){ bd=d; best=j; }
+  }
+  if (best<0){ toast('Beavers have made a new pond'); endProject(a); return; }
+  if (!canFlood(best)) return;
+  makeWater(best); beaverWater++; a.head=best;
+}
+function beaverMove(a,tx,ty,dt){
+  const dx=tx-a.x, dy=ty-a.y, d=Math.hypot(dx,dy); if (d<.05){ a.vx=a.vy=0; return d; }
+  const sp=ANIMALS.beaver.spd; a.vx=dx/d*sp; a.vy=dy/d*sp;
+  const st=Math.min(d,sp*dt); a.x+=dx/d*st; a.y+=dy/d*st; a.hop+=dt*3; if (a.vx) a.face=a.vx>0?1:-1;
+  return d;
+}
+function updateBeaver(a,dt){ // returns true while the beaver is busy (seeking or building)
+  if (!a.bm){ a.bm='seek'; a.goal=null; }
+  if (a.bm==='rest'){
+    a.rest-=dt;
+    if (a.rest<=0){ if (beaverWater<CFG.BEAVER_MAX_WATER && R()<.5) a.bm='seek'; else a.rest=60+R()*60; }
+    return false;
+  }
+  if (a.bm==='seek'){
+    if (a.goal==null){ a.goal=nearestWater(a.x,a.y); if (a.goal<0){ a.bm='rest'; a.rest=1e9; return false; } }
+    const j=tileAt(a.x,a.y), gx=a.goal%W+.5, gy=((a.goal/W)|0)+.5;
+    if (j>=0 && (shore[j]||terr[j]===WATER) && Math.hypot(gx-a.x,gy-a.y)<3){ startStream(a); return true; }
+    beaverMove(a,gx,gy,dt); return true;
+  }
+  const d=beaverMove(a,a.head%W+.5,((a.head/W)|0)+.5,dt);
+  if (d<.6 && R()<dt*3) burst(a.x,a.y,1,'chip');
+  a.dig-=dt;
+  if (a.dig<=0){ a.dig=a.bm==='pond'?CFG.BEAVER_POND_DIG:CFG.BEAVER_DIG; if (a.bm==='build') digStream(a); else digPond(a); }
+  return true;
+}
+function aOrAn(w){ return (/^[aeiou]/.test(w)?'an ':'a ')+w; }
+
+/* ---------------- v5: animals following green tracks to water ---------------- */
+const pPrev=new Int32Array(N), pSeen=new Uint32Array(N); let pStamp=1;
+// breadth-first search from the animal's tile. onlyReach: stay on water-linked green ground (following a track)
+function bfsPath(start,onlyReach,isGoal,maxNodes){
+  pStamp++; const q=[start]; pSeen[start]=pStamp; pPrev[start]=-1;
+  for (let h=0;h<q.length && q.length<maxNodes;h++){
+    const i=q[h];
+    if (h>0 && isGoal(i)){ const path=[]; for (let k=i;k!==-1;k=pPrev[k]) path.push(k); return path.reverse(); }
+    const x=i%W;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]){
+      if (j<0||j>=N||pSeen[j]===pStamp||terr[j]===WATER) continue;
+      if (onlyReach && !reach[j]) continue;
+      pSeen[j]=pStamp; pPrev[j]=i; q.push(j);
+    }
+  }
+  return null;
+}
+function nextToWater(j){ // a land tile touching open water: somewhere to drink
+  const x=j%W;
+  return (x>0&&terr[j-1]===WATER)||(x<W-1&&terr[j+1]===WATER)||(j>=W&&terr[j-W]===WATER)||(j<N-W&&terr[j+W]===WATER);
+}
+function farWaterPath(s){ // a water's edge at least 25 steps further than the nearest one, through linked green only
+  pStamp++; const q=[s], dd=[0]; pSeen[s]=pStamp; pPrev[s]=-1; let first=-1, pick=-1;
+  for (let h=0;h<q.length && q.length<40000;h++){
+    const i=q[h], d=dd[h];
+    if (h>0 && nextToWater(i)){ if (first<0) first=d; else if (d>=first+25 && d<150){ pick=i; if (R()<.35) break; } }
+    const x=i%W;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]){
+      if (j<0||j>=N||pSeen[j]===pStamp||terr[j]===WATER||!reach[j]) continue;
+      pSeen[j]=pStamp; pPrev[j]=i; q.push(j); dd.push(d+1);
+    }
+  }
+  if (pick<0) return null;
+  const path=[]; for (let k=pick;k!==-1;k=pPrev[k]) path.push(k); return path.reverse();
+}
+/* v12: animals travel. On linked green ground they go on trips along your vegetation tracks: down to a lake
+   to drink, a rest, then off along another track to graze somewhere new or to a different watering hole.
+   Herds travel together behind whichever of them sets off first. They never cross barren land. */
+function planWaterPath(a){
+  const s=tileAt(a.x,a.y); if (s<0) return;
+  if (!reach[s]){ a.wantDrink=true; return; }            // cut off: wait until you link them to water
+  const h=a.herd;
+  if (h && h.tripLeader && h.tripLeader!==a && h.tripLeader.path && animals.indexOf(h.tripLeader)>=0) return; // the herd is already on the move
+  planTrip(a,s);
+}
+function planTrip(a,s){
+  const thirsty=a.wantDrink || elapsed-(a.lastDrink===undefined?-999:a.lastDrink)>100;
+  pStamp++; const q=[s], dd=[0]; pSeen[s]=pStamp; pPrev[s]=-1;
+  const waters=[], spots=[];
+  for (let h=0;h<q.length && q.length<45000;h++){
+    const i=q[h], d=dd[h];
+    if (d>170) break;
+    if (h>0){ if (nextToWater(i)){ if (d>=6) waters.push(i); } else if (d>=30 && hash2(i%W,(i/W)|0,77)<.08) spots.push(i); }
+    const x=i%W;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]){
+      if (j<0||j>=N||pSeen[j]===pStamp||terr[j]===WATER||!reach[j]) continue;
+      pSeen[j]=pStamp; pPrev[j]=i; q.push(j); dd.push(d+1);
+    }
+  }
+  const farFromLast=i=>a.lastDrinkX===undefined || Math.hypot(i%W+.5-a.lastDrinkX,((i/W)|0)+.5-a.lastDrinkY)>25;
+  let pick=-1, leg=2;
+  if (thirsty || R()<.45){ const w=waters.filter(farFromLast); if (w.length) pick=w[(R()*w.length)|0]; else if (waters.length && thirsty) pick=waters[(R()*Math.min(waters.length,40))|0]; }
+  if (pick<0 && spots.length){ pick=spots[(R()*spots.length)|0]; leg=3; }
+  if (pick<0 && waters.length){ pick=waters[(R()*waters.length)|0]; leg=2; }
+  if (pick<0){ a.restT=15+R()*20; return; }
+  const path=[]; for (let k=pick;k!==-1;k=pPrev[k]) path.push(k); path.reverse();
+  a.path=path; a.pi=0; a.leg=leg; a.pathDelay=0; a.off=null;
+  const h=a.herd;
+  if (h){ // the herd heads off together, in a loose line behind the first one
+    h.tripLeader=a; h.x=pick%W+.5; h.y=((pick/W)|0)+.5; h.t=999;
+    let n=0;
+    for (const m of animals){
+      if (m.herd!==h || m===a || m.path || Math.hypot(m.x-a.x,m.y-a.y)>14) continue;
+      m.path=path; m.pi=0; m.leg=leg; m.pathDelay=.5+n*.6+R()*.5; m.off=[(R()-.5)*.7,(R()-.5)*.7]; n++;
+    }
+  }
+}
+function followWaterPath(a,A,dt){
+  if (a.pathDelay>0){ a.pathDelay-=dt; a.vx=a.vy=0; return; }   // herd members set off one after another
+  if (a.pi>=a.path.length){ // arrived
+    a.path=null; a.vx=a.vy=0; a.tx=null; a.t=2+R()*2; a.off=null;
+    if (a.leg===2){ burst(a.x,a.y,6,'drop'); a.lastDrink=elapsed; a.lastDrinkX=a.x; a.lastDrinkY=a.y; a.wantDrink=false; a.restT=12+R()*16; } // drink, then a rest
+    else a.restT=14+R()*22;                                                                                                              // graze a while
+    const h=a.herd;
+    if (h){ h.x=a.x; h.y=a.y; h.t=a.restT+6; if (h.tripLeader===a) h.tripLeader=null; if (h.tripLeader && h.tripLeader!==a) a.restT+=4; }
+    return;
+  }
+  // skip ahead to the furthest waypoint within a couple of tiles so the walk looks natural
+  while (a.pi<a.path.length-1){
+    const n=a.path[a.pi+1], nx=n%W+.5, ny=((n/W)|0)+.5;
+    if (Math.hypot(nx-a.x,ny-a.y)<1.6) a.pi++; else break;
+  }
+  if (stage[a.path[a.pi]]<1 || terr[a.path[a.pi]]===WATER){ // track broken (fire, digging): stop and wait
+    a.path=null; a.pathT=2; a.restT=4; if (a.herd && a.herd.tripLeader===a) a.herd.tripLeader=null; return;
+  }
+  const k=a.path[a.pi], ox=a.off?a.off[0]:0, oy=a.off?a.off[1]:0;
+  const tx=k%W+.5+ox, ty=((k/W)|0)+.5+oy, dx=tx-a.x, dy=ty-a.y, d=Math.hypot(dx,dy);
+  const sp=A.spd*(.6+.4*a.scale)*1.15;
+  if (d<.25){ a.pi++; return; }
+  const st=Math.min(d,sp*dt);
+  const nx=a.x+dx/d*st, ny=a.y+dy/d*st;
+  if (terr[tileAt(nx,ny)]===WATER){ a.pi++; return; }            // offsets never step into the water
+  a.vx=dx/d*sp; a.vy=dy/d*sp; a.x=nx; a.y=ny; a.hop+=dt*A.spd*3;
+  if (a.vx) a.face=a.vx>0?1:-1;
+}
+
+/* ================================================================
+   v6: jumping, riding animals, the pick-shovel, the tool inventory,
+   rescuing stuck poachers/animals, and poachers dodging shots
+   ================================================================ */
+const RIDEABLE=new Set(['bear','elephant','horse','camel','lion']);
+
+/* ---------- jump (Space) / ride (Shift) ---------- */
+function nearestRideable(){
+  let best=null, bd=2.2;
+  for (const a of animals){ if (!RIDEABLE.has(a.type)) continue; const d=Math.hypot(a.x-player.x,a.y-player.y); if (d<bd){ bd=d; best=a; } }
+  return best;
+}
+function jumpAction(){ // jump: clears a narrow stream (not while riding)
+  if (state!=='play' || player.ride || player.air) return;
+  player.air=true; player.vz=CFG.JUMP_V;
+}
+function rideAction(){
+  if (state!=='play') return;
+  if (player.ride){ dismount(); return; }
+  const a=nearestRideable();
+  if (a && !player.air) mount(a);
+}
+function mount(a){
+  animals.splice(animals.indexOf(a),1);                     // while ridden it isn't part of the herd, thirst or stealing
+  a.path=null; a.tx=null; a.vx=a.vy=0; a.yaw3=Math.PI/2-player.aim;
+  player.ride=a; player.x=a.x; player.y=a.y;
+}
+function dismount(){
+  const a=player.ride; player.ride=null;
+  a.x=player.x; a.y=player.y; a.vx=a.vy=0; a.tx=null; a.path=null; a.dry=0; a.t=2; a.ax=undefined;
+  animals.push(a); joinHerd(a);
+  // step off to the side
+  const side=player.aim+Math.PI/2;
+  for (const s of [1,-1,2,-2]){ const nx=player.x+Math.cos(side)*s*.9, ny=player.y+Math.sin(side)*s*.9; if (!blocked(nx,ny,.3)){ player.x=nx; player.y=ny; break; } }
+}
+function updateJump(dt){
+  if (!player.air) return;
+  player.jz+=player.vz*dt; player.vz-=CFG.GRAVITY*dt;
+  if (player.jz<=0){
+    player.jz=0; player.vz=0; player.air=false;
+    if (blocked(player.x,player.y,.3)){ player.x=player.lastX; player.y=player.lastY; toast('Too wide to jump — find a narrower spot'); }
+  }
+}
+function inMap(x,y,r){ return x-r>=0 && y-r>=0 && x+r<W && y+r<H; }
+
+/* ---------- tools & inventory (Alt, or 1 / 2) ---------- */
+const invEl=el('inv'), toolNameEl=el('toolName'), dirtEl=el('dirtN'), hintEl=el('hint');
+function setTool(t){
+  player.tool=t;
+  for (const s of invEl.querySelectorAll('.slot')) s.classList.toggle('on',s.dataset.tool===t);
+  toolNameEl.textContent=t==='gun'?'Water gun':'Pick-shovel';
+  updateDirtHud();
+}
+function updateDirtHud(){ dirtEl.textContent=''; } // v15: no dirt bag to show
+function toggleInv(show){ invEl.classList.toggle('hidden',show===undefined?!invEl.classList.contains('hidden'):!show); }
+for (const s of invEl.querySelectorAll('.slot')) s.addEventListener('click',()=>{ setTool(s.dataset.tool); toggleInv(false); });
+
+/* ---------- pick-shovel ----------
+   click: dig. Lowers a hill a level (cut a path through for animals), or next to water cuts a channel.
+   right-click: drop dirt. Raises ground a level, or fills in a dug channel. */
+function shovelTarget(){
+  const i=tileAt(aim.x,aim.y), inR=Math.hypot(Math.floor(aim.x)+.5-player.x,Math.floor(aim.y)+.5-player.y)<=CFG.DIG_RANGE;
+  return {i,inR};
+}
+function besideWater(i){ const x=i%W; return (x>0&&terr[i-1]===WATER)||(x<W-1&&terr[i+1]===WATER)||(i>=W&&terr[i-W]===WATER)||(i<N-W&&terr[i+W]===WATER); }
+const PIT_MAX=2, ELEV_MAX=16;
+const onPlayer=i=>Math.floor(player.x)+Math.floor(player.y)*W===i;
+// v10: dig anywhere. Hills come down a block at a time; on flat ground you dig a pit (up to 2 deep) for a pond,
+// or, right beside water, you cut a channel
+function canDig(i){
+  if (i<0 || terr[i]===WATER || onPlayer(i)) return false;   // v15: no dirt bag: dig as much as you like
+  return elev[i]>0 || besideWater(i) || pitD[i]<PIT_MAX;
+}
+// drop dirt anywhere: fill a pit, raise the ground a block, or fill in a dug channel
+function canPlace(i){
+  if (i<0 || onPlayer(i)) return false;                       // v15: and drop as much as you like
+  if (terr[i]===WATER) return !!madeWater[i];
+  return pitD[i]>0 || elev[i]<ELEV_MAX;
+}
+function reshaped(i){ // the ground changed shape: redraw it and its neighbours
+  const x=i%W, y=(i/W)|0;
+  for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){ const X=x+dx, Y=y+dy; if (X>=0&&Y>=0&&X<W&&Y<H) markChanged(Y*W+X); }
+}
+function setElev(i,e){ elev[i]=e; hgt[i]=e>=8?2:e>=4?1:0; }
+function shovelDig(){
+  const {i,inR}=shovelTarget();
+  if (i<0 || !inR) return;
+  if (!canDig(i)){
+    if (pitD[i]>=PIT_MAX) toastOnce('pitdeep','That pit is as deep as it goes — dig next to it to make the pond bigger');
+    return;
+  }
+  const x=i%W+.5, y=((i/W)|0)+.5;
+  if (elev[i]>0){ setElev(i,Math.max(0,elev[i]-2)); if (stage[i]>0) setStage(i,0); scar[i]=0; reshaped(i); }
+  else if (besideWater(i) && !pitD[i]){ makeWater(i); madeWater[i]=1; }     // cut a channel from the water's edge
+  else { pitD[i]++; pitFill[i]=0; if (stage[i]>0) setStage(i,0); scar[i]=0; reshaped(i); toastOnce('pond','Dig out a pit, then spray water into it to fill a pond'); }
+  player.dirt++; player.digT=.3; updateDirtHud();
+  burst(x,y,6,'chip');
+}
+function shovelPlace(){
+  const {i,inR}=shovelTarget();
+  if (i<0 || !inR) return;
+  if (!canPlace(i)){
+    if (terr[i]===WATER) toastOnce('deep','That water is too deep to fill — only dug channels and ponds can be filled');
+    return;
+  }
+  const x=i%W+.5, y=((i/W)|0)+.5;
+  if (terr[i]===WATER) fillWater(i);
+  else if (pitD[i]>0){ pitD[i]--; if (!pitD[i]) pitFill[i]=0; reshaped(i); }
+  else { setElev(i,Math.min(ELEV_MAX,elev[i]+2)); if (stage[i]>0) setStage(i,0); reshaped(i); }
+  player.dirt--; player.digT=.3; updateDirtHud();
+  burst(x,y,6,'chip');
+}
+function fillWater(i){ // turn a dug channel or pond back into bare ground
+  terr[i]=DIRT; hgt[i]=0; elev[i]=0; pitD[i]=0; pitFill[i]=0; depth[i]=0; dam[i]=0; madeWater[i]=0; stage[i]=0; prog[i]=0; cap[i]=2; ncap[i]=2; moist[i]=.6; scar[i]=0;
+  landCount++;
+  const x=i%W, y=(i/W)|0;
+  for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){ // shore flags around it may have changed
+    const X=x+dx, Y=y+dy; if (X<0||Y<0||X>=W||Y>=H) continue; const j=Y*W+X; if (terr[j]===WATER) continue;
+    let nw=0; for (let ey=-1;ey<=1;ey++) for (let ex=-1;ex<=1;ex++){ const XX=X+ex, YY=Y+ey; if (XX>=0&&YY>=0&&XX<W&&YY<H&&terr[YY*W+XX]===WATER) nw=1; }
+    shore[j]=nw;
+  }
+  reshaped(i);
+}
+/* v10: ponds. A shot landing in a dug pit adds water to the whole connected pit.
+   Bigger and deeper pits take more shots: 1.5 shots per block of pit volume */
+function pondRegion(i){
+  const q=[i], seen=new Set([i]);
+  for (let h=0;h<q.length && q.length<600;h++){
+    const k=q[h], x=k%W;
+    for (const j of [x>0?k-1:-1, x<W-1?k+1:-1, k-W, k+W]) if (j>=0&&j<N&&!seen.has(j)&&pitD[j]&&terr[j]!==WATER){ seen.add(j); q.push(j); }
+  }
+  return q;
+}
+function fillPond(i){
+  const reg=pondRegion(i); let vol=0; for (const j of reg) vol+=pitD[j];
+  const shots=Math.max(2,Math.ceil(vol*1.5)), add=1/shots;
+  let full=true;
+  for (const j of reg){ pitFill[j]=Math.min(1,pitFill[j]+add); if (pitFill[j]<.999) full=false; mmPixel(j); tileChanged(j); }
+  const pc=Math.round(pitFill[i]*100);
+  if (full){
+    for (const j of reg){ const d=pitD[j]; makeWater(j); madeWater[j]=1; depth[j]=d>=2?1:0; mmPixel(j); }
+    burst(i%W+.5,((i/W)|0)+.5,20,'drop'); toast('Your pond is full! Animals can drink here and you can refill from it','big');
+  } else if (elapsed-(toastSeen.pondfill||-99)>1.5){ toastSeen.pondfill=elapsed; toast('Pond '+pc+'% full ('+shots+' shots to fill)'); }
+}
+const toastSeen={};
+function toastOnce(k,msg){ if (elapsed-(toastSeen[k]||-99)>8){ toastSeen[k]=elapsed; toast(msg); } }
+
+/* ---------- stuck rescue: anything trying to move that hasn't got anywhere in a minute is moved 4–6 blocks ---------- */
+function stuckCheck(e,dt,trying){
+  if (e.ax===undefined || Math.hypot(e.x-e.ax,e.y-e.ay)>1.5){ e.ax=e.x; e.ay=e.y; e.aT=0; e.tryT=0; return false; }
+  e.aT+=dt; if (trying) e.tryT+=dt;
+  if (e.aT>=60){ const stuck=e.tryT>30; e.ax=e.x; e.ay=e.y; e.aT=0; e.tryT=0; return stuck; }
+  return false;
+}
+function rescuePoacher(p){
+  for (let k=0;k<40;k++){
+    const a=R()*TAU, d=4+R()*2, x=p.x+Math.cos(a)*d, y=p.y+Math.sin(a)*d;
+    if (inMap(x,y,.5) && !blocked(x,y,.3)){ p.x=x; p.y=y; p.dir=a; return; }
+  }
+}
+function rescueAnimal(a){
+  // stay on connected green ground (animals never cross barren land): search outward through their own patch
+  const s=tileAt(a.x,a.y); if (s<0) return;
+  const onGreen=goodHabitat(a.type,s), ok=j=>onGreen?goodHabitat(a.type,j):terr[j]!==WATER;
+  pStamp++; const q=[s], dist=new Map([[s,0]]); pSeen[s]=pStamp; const picks=[];
+  for (let h=0;h<q.length && q.length<3000;h++){
+    const i=q[h], d=dist.get(i); if (d>=4 && d<=6) picks.push(i); if (d>=6) continue;
+    const x=i%W;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]){
+      if (j<0||j>=N||pSeen[j]===pStamp||!ok(j)) continue; pSeen[j]=pStamp; dist.set(j,d+1); q.push(j);
+    }
+  }
+  if (!picks.length) return;
+  const j=picks[(R()*picks.length)|0];
+  a.x=j%W+.5; a.y=((j/W)|0)+.5; a.tx=null; a.vx=a.vy=0; a.path=null; a.t=1;
+}
+
+/* ---------- poachers dodge incoming shots now and then ---------- */
+function checkDodge(p){
+  for (const b of blobs){
+    if (b.t<.25 || b.t>.9) continue;
+    if (!b.seen) b.seen=new Set();
+    if (b.seen.has(p)) continue;
+    if (Math.hypot(p.x-b.tx,p.y-b.ty)>2.2) continue;
+    b.seen.add(p);
+    if (R()<CFG.DODGE_CHANCE){
+      const sd=Math.atan2(b.ty-b.sy,b.tx-b.sx)+(R()<.5?1:-1)*Math.PI/2;
+      p.dodgeT=.4; p.dodgeDir=sd; return;
+    }
+  }
+}
+
+/* ---------- ride hint ---------- */
+let hintT=0;
+function updateHint(dt){
+  hintT-=dt; if (hintT>0) return; hintT=.25;
+  let msg='';
+  if (player.ride) msg='Riding the '+ANIMALS[player.ride.type].name+' · Shift to get off';
+  else { const a=nearestRideable(); if (a) msg='Shift to ride the '+ANIMALS[a.type].name; }
+  hintEl.textContent=msg; hintEl.classList.toggle('hidden',!msg || !invEl.classList.contains('hidden'));
+}
+
+/* ================================================================
+   v7: trappers, crates and the eagle; poachers hunting green tracks
+   ================================================================ */
+let crates=[], eagles=[];
+const CAN_TRAP=a=>{ const h=ANIMALS[a.type].hab; return h!=='air' && h!=='water'; };
+
+/* ---------- trapper: chases an animal and boxes it where it catches it (up to 5 crates each) ---------- */
+function trapperAI(p,dt){
+  const mine=crates.reduce((n,c)=>n+(c.owner===p?1:0),0);
+  if (p.target){
+    const a=p.target;
+    p.chaseT-=dt;
+    if (animals.indexOf(a)<0 || p.chaseT<=0 || mine>=CFG.CRATE_MAX){ if (a) a.hunter=null; p.target=null; p.state='wander'; p.t=2+R()*3; return; }
+    const d=Math.hypot(a.x-p.x,a.y-p.y);
+    p.state='chase'; p.dir=Math.atan2(a.y-p.y,a.x-p.x); p.spd=CFG.TRAPPER_SPEED; p.think=false;
+    if (d<.9){ trapAnimal(p,a); p.target=null; p.state='idle'; p.spd=0; p.t=2+R()*2; }
+    return;
+  }
+  p.t-=dt;
+  if (p.t>0) return;
+  if (mine<CFG.CRATE_MAX && R()<.7){
+    let best=null, bd=CFG.TRAP_R;
+    for (const a of animals){ if (a.hunter || !CAN_TRAP(a) || nearPlayer(a)) continue; const d=Math.hypot(a.x-p.x,a.y-p.y); if (d<bd){ bd=d; best=a; } }
+    if (best){ p.target=best; best.hunter=p; p.chaseT=45; return; }
+  }
+  if (R()<.3){ p.state='idle'; p.spd=0; p.t=1+R()*2; p.think=R()<.4; }
+  else { p.state='wander'; p.dir=R()*TAU; p.spd=CFG.POACHER_SPEED*(.7+R()*.5); p.t=2+R()*4; p.think=false; }
+}
+function trapAnimal(p,a){
+  animals.splice(animals.indexOf(a),1);
+  a.hunter=null; a.path=null; a.tx=null; a.vx=a.vy=0;
+  crates.push({x:a.x,y:a.y,a,owner:p,yaw:R()*TAU});
+  burst(a.x,a.y,10,'chip');
+  if (!trapToastShown || elapsed-trapToastShown>40){ trapToastShown=elapsed; toast('A trapper boxed '+aOrAn(ANIMALS[a.type].name)+'. Spray the crate to set it free'); }
+}
+let trapToastShown=0;
+function releaseCrate(c){
+  crates.splice(crates.indexOf(c),1);
+  const a=c.a; a.x=c.x; a.y=c.y; a.dry=0; a.t=1; a.ax=undefined; a.warned=false;
+  animals.push(a); joinHerd(a);
+  burst(c.x,c.y,12,'chip'); burst(c.x,c.y,5,'heart');
+  toast('You freed '+aOrAn(ANIMALS[a.type].name)+' from a crate');
+}
+function splashCrates(cx,cy,r){ for (const c of crates.slice()) if (Math.hypot(c.x-cx,c.y-cy)<r) releaseCrate(c); }
+
+/* ---------- a sprayed trapper freezes, and an eagle carries him off the map ---------- */
+function catchTrapper(p){
+  p.caught=true; p.spd=0; poachersLeft--;
+  if (p.target){ p.target.hunter=null; p.target=null; }
+  if (p.visits<CFG.POACHER_RETURNS)
+    returning.push({t:elapsed+CFG.POACHER_RETURN_MIN+R()*(CFG.POACHER_RETURN_MAX-CFG.POACHER_RETURN_MIN), visits:p.visits+1, made:p.made.slice(), kind:p.kind});
+  const dir=R()*TAU;
+  eagles.push({p,t:0,x:p.x,y:p.y,gz:standY(p.x,p.y),dir,carry:false});
+  burst(p.x,p.y,10,'drop');
+  const left=CFG.POACHER_RETURNS-p.visits;
+  toast('Trapper frozen! Here comes the eagle'+(left>0?' — he\'ll be back '+left+(left===1?' more time':' more times'):''),'big');
+  if (poachersLeft===0) toast('Every poacher has been rewilded','big');
+}
+function updateEagles(dt){
+  for (const e of eagles){
+    e.t+=dt;
+    if (!e.carry && e.t>=2.2){ e.carry=true; e.p.dead=true; burst(e.x,e.y,8,'leaf'); }
+  }
+  eagles=eagles.filter(e=>e.t<7);
+}
+function eaglePos(e){ // swoop down, hover and grab, then fly off out of the map
+  const ex=Math.cos(e.dir), ey=Math.sin(e.dir);
+  if (e.t<1.6){ const k=1-e.t/1.6, s=k*k; return {x:e.x-ex*30*s, y:e.y-ey*30*s, z:e.gz+2.3+26*s, yaw:yawOf(ex,ey)}; }
+  if (e.t<2.2) return {x:e.x, y:e.y, z:e.gz+2.3+Math.sin((e.t-1.6)*10)*.1, yaw:yawOf(ex,ey)};
+  const u=e.t-2.2; return {x:e.x+ex*u*u*5, y:e.y+ey*u*u*5, z:e.gz+2.3+u*u*3.2, yaw:yawOf(ex,ey)};
+}
+
+/* ---------- v7: poachers go after your green tracks ---------- */
+// a green tile linked to water with few green neighbours is a narrow track: the best place to cut
+function trackScore(i){
+  if (i<0 || terr[i]===WATER || stage[i]<1) return -1;
+  const x=i%W; let g=0;
+  for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, i-W, i+W]) if (j>=0&&j<N&&terr[j]!==WATER&&stage[j]>=1) g++;
+  return (reach[i]?2:0)+(4-g);
+}
+function seekTrack(p){
+  let best=-1, bs=0;
+  for (let k=0;k<14;k++){
+    const a=R()*TAU, d=3+R()*14, i=tileAt(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d), s=trackScore(i);
+    if (s>bs){ bs=s; best=i; }
+  }
+  if (best<0) return false;
+  p.dir=Math.atan2(((best/W)|0)+.5-p.y,best%W+.5-p.x); return true;
+}
+function pickTrackCutter(c){ // v7: the poacher standing on the most useful bit of track gets the job (with some randomness)
+  let best=c[(R()*c.length)|0], bs=-1;
+  for (const p of c){ const sc=trackScore(tileAt(p.x,p.y))+R()*2; if (sc>bs){ bs=sc; best=p; } }
+  return best;
+}
+
+/* ---------- v11: poachers are sneakier around you ----------
+   They notice you from further away (SEE_R). They won't go for animals close to you, drop a hunt if you're
+   standing near their target, and when their path would take them towards you they slip round the side instead.
+   They stay wary for a while after being chased off. Flee distance and speed are unchanged, so you can still catch them. */
+function nearPlayer(a){ return Math.hypot(a.x-player.x,a.y-player.y)<CFG.KEEP_R; }
+function beWary(p,d,dt){
+  if (p.waryT>0) p.waryT-=dt;
+  if (d>CFG.SEE_R+2 && !(p.waryT>0)) return;
+  // drop a hunt if you're guarding the animal
+  if (p.target && d<CFG.SEE_R && nearPlayer(p.target)){
+    p.target.hunter=null; p.target=null; p.chaseT=0;
+    if (p.kind==='stealer') p.state=p.carry?'return':'rest';
+    else if (p.kind==='trapper') p.state='wander';
+    p.t=3+R()*4; p.waryT=8+R()*6;
+    p.dir=Math.atan2(p.y-player.y,p.x-player.x)+(R()-.5)*.8; p.spd=CFG.POACHER_SPEED*1.1;
+  }
+  if (!(p.spd>0) || d>CFG.SEE_R+2) return;
+  // don't walk towards you: skirt round at a distance
+  const ax=player.x-p.x, ay=player.y-p.y, al=Math.hypot(ax,ay)||1, tp=Math.atan2(ay,ax);
+  const dot=(Math.cos(p.dir)*ax+Math.sin(p.dir)*ay)/al;
+  if (dot>.15){
+    const a1=tp+1.95, a2=tp-1.95, c1=Math.cos(a1-p.dir), c2=Math.cos(a2-p.dir);
+    p.dir=c1>=c2?a1:a2;
+  }
+}
+function pickConversionAnimal(made,i){
+  const near=i>=0 && wdist[i]<=3;
+  const ks=ANIMAL_KEYS.filter(k=>!made.includes(k) && (ANIMALS[k].hab!=='water'||near));
+  let m=1e9; for (const k of ks) m=Math.min(m,convCount[k]||0);
+  const c=ks.filter(k=>(convCount[k]||0)===m); // least-made species first, so every visit brings something new
+  return c[(R()*c.length)|0]||'roo';
+}
+function convertPoacher(p){
+  if (p.kind==='trapper'){ catchTrapper(p); return; } // v7: trappers get carried off by an eagle
+  p.dead=true; poachersLeft--;
+  if (p.kind==='stealer'){
+    if (p.target) p.target.hunter=null;
+    if (p.carry){ p.carry.x=p.x; p.carry.y=p.y; p.carry.dry=0; p.carry.path=null; animals.push(p.carry); joinHerd(p.carry); burst(p.x,p.y-.4,4,'heart'); p.carry=null; }
+    const h=p.hut;
+    if (h){
+      h.ownerGone=true;
+      if (!h.built && !h.captives.length) huts.splice(huts.indexOf(h),1);
+      else if (h.captives.length) toast('Stealer rewilded. Their gate is open for good, spray the hut any time to free '+h.captives.length+(h.captives.length===1?' animal':' animals'),'big');
+    }
+  }
+  const i=tileAt(p.x,p.y);
+  const type=pickConversionAnimal(p.made,i);
+  p.made.push(type); convCount[type]=(convCount[type]||0)+1;
+  if (p.visits<CFG.POACHER_RETURNS)
+    returning.push({t:elapsed+CFG.POACHER_RETURN_MIN+R()*(CFG.POACHER_RETURN_MAX-CFG.POACHER_RETURN_MIN), visits:p.visits+1, made:p.made.slice(), kind:p.kind});
+  let ax=p.x, ay=p.y;
+  if (ANIMALS[type].hab==='water'){ const w=nearestWater(p.x,p.y); if (w>=0){ ax=w%W+.5; ay=((w/W)|0)+.5; } }
+  const na=spawnAnimal(ax,ay,type,1); na.sprayUntil=elapsed+CFG.SPRAY_BREED_WINDOW;
+  let msg='A poacher turned into '+aOrAn(ANIMALS[type].name)+' (spray it within a minute to help it breed)';
+  if (i>=0 && terr[i]!==WATER && R()<.5){
+    if (cap[i]<3) cap[i]=3;
+    setStage(i,3); treeAge[i]=.6; treeForce[i]=1; burst(p.x,p.y,18,'leaf'); // v2: make sure this tree shows
+    msg+=', and a tree sprang up';
+  }
+  splash(p.x,p.y,2.8,.9,true);
+  burst(p.x,p.y,14,'sparkle');
+  toast(msg);
+  const left=CFG.POACHER_RETURNS-p.visits;
+  if (poachersLeft===0) toast('Every poacher has been rewilded','big');
+  else if (left>0) toast(left===1?'They\'ll be back once more':'They\'ll be back '+left+' more times');
+}
+function spawnReturningPoacher(r){
+  for (let k=0;k<500;k++){
+    const x=R()*W, y=R()*H, i=tileAt(x,y);
+    if (i<0||terr[i]===WATER||Math.hypot(x-player.x,y-player.y)<25) continue;
+    poachers.push({x,y,dir:R()*TAU,spd:CFG.POACHER_SPEED,state:'wander',t:1,walk:0,wob:0,stumble:0,think:false,returned:true,visits:r.visits,made:r.made,kind:r.kind});
+    toast(r.visits>=CFG.POACHER_RETURNS?'A poacher is back for the last time':'A poacher has come back');
+    return;
+  }
+}
+function finishDig(p){
+  const cx=Math.floor(p.x), cy=Math.floor(p.y); let n=0;
+  for (const [dx,dy] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){
+    if ((dx||dy) && R()<.6) continue;
+    const i=tileAt(cx+dx+.5,cy+dy+.5); if (i<0||terr[i]===WATER||stage[i]===0) continue;
+    scar[i]=2; setStage(i,0); n++;
+  }
+  if (n) burst(p.x,p.y,8,'chip');
+}
+
+/* ---------------- Tree fellers ---------------- */
+function nearestTree(x,y,r){
+  let best=-1, bd=1e9; const cx=Math.floor(x), cy=Math.floor(y);
+  for (let dy=-r;dy<=r;dy++) for (let dx=-r;dx<=r;dx++){ const j=tileAt(cx+dx+.5,cy+dy+.5); if (j>=0&&stage[j]===3){ const d=dx*dx+dy*dy; if (d<bd){bd=d;best=j;} } }
+  return best;
+}
+function chopAI(p,dt){
+  const gx=p.goal%W+.5, gy=((p.goal/W)|0)+.5, d=Math.hypot(gx-p.x,gy-p.y);
+  p.t-=dt;
+  if (stage[p.goal]!==3 || p.t<=0){ p.state='wander'; p.t=1; return; }
+  if (p.state==='toChop'){
+    if (d<.7){ p.state='chop'; p.spd=0; p.t=CFG.CHOP_TIME; }
+    else { p.dir=Math.atan2(gy-p.y,gx-p.x); p.spd=CFG.POACHER_SPEED*1.2; }
+  } else if (p.t<=.05){
+    scar[p.goal]=2; setStage(p.goal,0); burst(gx,gy-.5,14,'chip'); burst(gx,gy-.6,8,'leaf');
+    toast('A poacher chopped down a tree and cleared the ground');
+    p.state='wander'; p.t=1;
+  }
+}
+
+/* ---------------- Stealers and their huts ---------------- */
+const HUT_COLS=['#e0503c','#3c8fe0','#f2c230','#44b36a','#e07bd0','#f08a30','#5ad0d0','#b07a50','#9a6ae0','#e8e8e8']; let hutSeq=0; // each stealer and its hut share a flag colour
+function siteHut(p){
+  for (let k=0;k<300;k++){
+    const x=p.x+(R()-.5)*20, y=p.y+(R()-.5)*20, j=tileAt(x,y);
+    if (j<0||terr[j]===WATER||wdist[j]<3) continue;
+    if (x<3||y<3||x>W-3||y>H-3) continue;
+    if (huts.some(h=>Math.hypot(h.x-x,h.y-y)<7)) continue;
+    return {x:Math.floor(x)+.5,y:Math.floor(y)+.5,built:false,prog:0,owner:p,ownerGone:false,captives:[],col:HUT_COLS[(hutSeq++)%HUT_COLS.length]};
+  }
+  return {x:p.x,y:p.y,built:false,prog:0,owner:p,ownerGone:false,captives:[],col:HUT_COLS[(hutSeq++)%HUT_COLS.length]};
+}
+function huntable(a){ return a.type!=='bird' && a.type!=='beaver' && ANIMALS[a.type].hab!=='water' && !a.hunter && !nearPlayer(a); } // v11: not right under your nose
+function stealerAI(p,dt){
+  if (p.delay===undefined) p.delay = p.returned ? 20+R()*40 : CFG.STEALER_START_MIN+R()*(CFG.STEALER_START_MAX-CFG.STEALER_START_MIN);
+  if (p.delay>0){ // wanders like any poacher before settling down
+    p.delay-=dt; p.t-=dt;
+    if (p.t<=0){ p.state='wander'; p.dir=R()*TAU; p.spd=CFG.POACHER_SPEED*(.6+R()*.4); p.t=2+R()*4; }
+    return;
+  }
+  if (!p.hut){ p.hut=siteHut(p); huts.push(p.hut); p.state='build'; }
+  const h=p.hut, sp=CFG.STEALER_SPEED;
+  const goTo=(x,y,speed)=>{ const d=Math.hypot(x-p.x,y-p.y); if (d>.05){ p.dir=Math.atan2(y-p.y,x-p.x); p.spd=speed; } else p.spd=0; return d; };
+  if (!h.built){
+    p.state='build';
+    if (goTo(h.x+.9,h.y+.6,CFG.POACHER_SPEED*1.3)<.6){
+      p.spd=0; h.prog+=dt/CFG.HUT_BUILD; if (R()<dt*3) burst(h.x,h.y,2,'chip');
+      if (h.prog>=1){ h.built=true; p.state='rest'; p.t=5+R()*10; }
+    }
+    return;
+  }
+  if (p.state==='return'){
+    if (goTo(h.x,h.y+2,sp)<.8){
+      const a=p.carry; p.carry=null;
+      if (a){ a.hunter=null; a.x=h.x; a.y=h.y; a.ox=(R()-.5)*1.4; a.oy=(R()-.5)*.6; a.vx=a.vy=0; h.captives.push(a); }
+      p.state='rest'; p.t=CFG.STEALER_REST_MIN+R()*(CFG.STEALER_REST_MAX-CFG.STEALER_REST_MIN);
+    }
+    return;
+  }
+  if (p.state==='hunt'){
+    const a=p.target; p.t-=dt;
+    if (!a || animals.indexOf(a)<0 || p.t<=0){
+      if (a) a.hunter=null; p.target=null; p.state='prowl'; p.t=4+R()*4; return;
+    }
+    const d=goTo(a.x,a.y,sp);
+    if (d<4 && R()<dt*.8){ // the animal sometimes bolts away
+      const ang=Math.atan2(a.y-p.y,a.x-p.x)+(R()-.5); a.tx=a.x+Math.cos(ang)*5; a.ty=a.y+Math.sin(ang)*5; a.t=2;
+    }
+    if (d<.55){
+      animals.splice(animals.indexOf(a),1); a.dry=0; a.warned=false; p.carry=a; p.target=null; p.state='return';
+      toast('A stealer caught '+aOrAn(ANIMALS[a.type].name)+'. Look for the '+colName(h.col)+' flag','big');
+    }
+    return;
+  }
+  if (p.target){ p.target.hunter=null; p.target=null; }
+  p.t-=dt;
+  if (p.state==='rest' && p.t>0){ // brief rest just outside the gate after dropping an animal off
+    const lx=h.x, ly=h.y+2.2;
+    if (Math.hypot(lx-p.x,ly-p.y)>1.3) goTo(lx+(R()-.5)*1.5,ly+(R()-.5)*.6,CFG.POACHER_SPEED);
+    else if (R()<dt*.6) p.spd=0;
+    return;
+  }
+  if (p.state==='prowl' && p.t>0){ // roaming the map in search of animals
+    if (R()<dt*.3) p.dir+=(R()-.5)*1.2;
+    p.spd=CFG.POACHER_SPEED*1.2;
+    return;
+  }
+  if (h.captives.length>=CFG.HUT_CAP){ p.state='rest'; p.t=20; return; }
+  let best=null, bd=CFG.HUNT_R;
+  for (const a of animals){ if (!huntable(a)) continue; const d=Math.hypot(a.x-p.x,a.y-p.y); if (d<bd){ bd=d; best=a; } }
+  if (best && R()<CFG.HUNT_CHANCE){ p.target=best; best.hunter=p; p.state='hunt'; p.t=45; }
+  else { p.state='prowl'; p.dir=R()*TAU; p.t=6+R()*6; }
+}
+function colName(c){ return {'#e0503c':'red','#3c8fe0':'blue','#f2c230':'yellow','#44b36a':'green','#e07bd0':'pink','#f08a30':'orange','#5ad0d0':'teal','#b07a50':'brown','#9a6ae0':'purple','#e8e8e8':'white'}[c]||'coloured'; }
+function hitHut(h){
+  if (!h.ownerGone){
+    if (elapsed-lockToastT>3){ lockToastT=elapsed; toast('The gate is locked. Rewild the stealer first'); }
+    return;
+  }
+  const n=h.captives.length;
+  for (const a of h.captives){ a.x=h.x+a.ox+(R()-.5); a.y=h.y+a.oy+.8+R()*.8; a.hunter=null; a.t=0; a.dry=0; a.path=null; animals.push(a); joinHerd(a); burst(a.x,a.y-.4,3,'heart'); }
+  h.captives=[]; huts.splice(huts.indexOf(h),1);
+  burst(h.x,h.y,20,'chip'); burst(h.x,h.y,14,'sparkle');
+  toast(n?'You freed '+n+(n===1?' animal!':' animals!'):'The empty hut collapses','big');
+}
+
+/* ================================================================
+   3D drawing of everything that moves: player, poachers, stealers,
+   animals, huts, fires, butterflies. All of it is built from boxes
+   and drawn through one instanced mesh, so it stays fast.
+   ================================================================ */
+const BATCH_MAX=26000;
+const FIG=1.15; // v2: people and animals are 15% bigger than v1
+const batch=makeInst(BATCH_MAX,new THREE.MeshLambertMaterial({color:0xffffff}),true,true);
+let bn=0;
+// see-through silhouettes: anything hidden behind trees or hills still shows faintly, so you can find poachers in a forest
+const ghost=new THREE.InstancedMesh(batch.geometry,new THREE.MeshBasicMaterial({color:0xffffff,opacity:.38,depthFunc:THREE.GreaterDepth,depthWrite:false,blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor}),BATCH_MAX);
+ghost.instanceMatrix=batch.instanceMatrix; ghost.instanceColor=batch.instanceColor; ghost.frustumCulled=false; ghost.renderOrder=1; batch.renderOrder=2; // ground first, then silhouettes, then the real figures on top ghost.count=0; scene.add(ghost);
+const _E=new THREE.Matrix4(), _L=new THREE.Matrix4(), _T=new THREE.Matrix4(), _Rx=new THREE.Matrix4(), _Sm=new THREE.Matrix4(), _Ry=new THREE.Matrix4();
+let _yaw=0;
+// start a figure at map (x,y), ground height gz, facing yaw, uniform scale k
+function fig(x,y,gz,yaw,k){ _E.makeRotationY(yaw); _E.premultiply(_T.makeTranslation(x,gz,y)); if (k!==1) _E.multiply(_Sm.makeScale(k,k,k)); _yaw=yaw; }
+// a box in the current figure's local space: centre (px,py,pz), size (w,h,d); optional swing rx about its top edge
+function part(px,py,pz,w,h,d,col,rx,piv){ // piv: height of the joint it swings from (default: its own top)
+  if (bn>=BATCH_MAX) return;
+  if (rx){
+    const pv=piv===undefined?py+h/2:piv;
+    _L.makeTranslation(px,pv,pz); _L.multiply(_Rx.makeRotationX(rx)); _L.multiply(_T.makeTranslation(0,py-pv,0));
+  } else _L.makeTranslation(px,py,pz);
+  _L.multiply(_Sm.makeScale(w,h,d));
+  _L.premultiply(_E);
+  batch.setMatrixAt(bn,_L); batch.setColorAt(bn,_c.set(col)); bn++;
+}
+// a box in world space (no figure transform)
+function wbox(x,y,z,w,h,d,col){
+  if (bn>=BATCH_MAX) return;
+  _p.set(x,y,z); _s.set(w,h,d); _q.set(0,0,0,1); _L.compose(_p,_q,_s);
+  batch.setMatrixAt(bn,_L); batch.setColorAt(bn,_c.set(col)); bn++;
+}
+const yawOf=(dx,dy)=>Math.PI/2-Math.atan2(dy,dx); // map direction -> figure yaw (figures face +z)
+function turnTo(o,dx,dy,dt){ // smooth heading for things that move
+  if (Math.abs(dx)+Math.abs(dy)<1e-4) return o.yaw3||0;
+  const t=yawOf(dx,dy); let a=o.yaw3===undefined?t:o.yaw3, d=((t-a+Math.PI*3)%(Math.PI*2))-Math.PI;
+  o.yaw3=a+d*Math.min(1,dt*8); return o.yaw3;
+}
+
+/* ---------------- People (v4: more detailed) ----------------
+   Local units: feet on the ground at y=0, facing +z. Everything is scaled by FIG. */
+const dk=(c,k)=>new THREE.Color(c).multiplyScalar(k).getHex();
+function personBody(c,sw,armL,armR,sit){
+  // legs: trousers + boots, swinging from the hip (sitting astride an animal: legs forward and apart)
+  for (const [sx,a] of [[-1,sw],[1,-sw]]){
+    const X=sit?sx*.2:sx*.11, A=sit?-1.2:a;
+    part(X,.42,0,.2,.56,.22,c.legs,A,.7);
+    part(X,.07,.03,.22,.14,.29,c.boots,A,.7);
+  }
+  part(0,.74,0,.48,.07,.3,c.belt);                         // belt
+  part(0,.74,.155,.1,.07,.01,0xc9a74a);                    // buckle
+  part(0,1.02,0,.46,.5,.28,c.shirt);                       // torso
+  if (c.vest) { part(-.16,1.02,.01,.14,.5,.3,c.vest); part(.16,1.02,.01,.14,.5,.3,c.vest); }
+  // arms: sleeve + hand, swinging from the shoulder
+  for (const [sx,a] of [[-1,armL],[1,armR]]){
+    part(sx*.31,1.08,0,.16,.4,.18,c.shirt,a,1.26);
+    part(sx*.31,.81,0,.15,.14,.16,c.skin,a,1.26);
+  }
+  // head: face, eyes, nose, hair
+  part(0,1.47,0,.38,.38,.38,c.skin);
+  part(-.085,1.5,.191,.07,.06,.01,0xffffff); part(.085,1.5,.191,.07,.06,.01,0xffffff);
+  part(-.085,1.5,.196,.035,.05,.01,0x1e1812); part(.085,1.5,.196,.035,.05,.01,0x1e1812);
+  part(0,1.43,.2,.06,.07,.04,dk(c.skin,.88));
+  part(0,1.37,.192,.12,.025,.01,dk(c.skin,.6));           // mouth
+  part(0,1.63,-.02,.4,.08,.4,c.hair); part(0,1.5,-.18,.4,.3,.05,c.hair);
+  part(-.2,1.52,-.02,.02,.22,.34,c.hair); part(.2,1.52,-.02,.02,.22,.34,c.hair);
+  if (c.hat){
+    part(0,1.69,0,.56,.05,.56,c.hat); part(0,1.78,0,.36,.16,.36,c.hat); part(0,1.73,0,.37,.04,.37,dk(c.hat,.55));
+  }
+}
+const POACHER_COL={legs:0x3b3228,boots:0x241a12,belt:0x2a1e14,shirt:0x9a4a32,vest:0x5a3a24,skin:0xd9a47c,hair:0x2a1c12,hat:0x3a2c20};
+const STEALER_COL={legs:0x3a2c46,boots:0x1e1826,belt:0x241a2a,shirt:0xb04ab8,skin:0xd9a47c,hair:0x1a1410,hat:0x5a2a66};
+const TRAPPER_COL={legs:0x4a4232,boots:0x2a2018,belt:0x3a2a1a,shirt:0x9a8a4a,vest:0x6a5a30,skin:0xd9a47c,hair:0x3a2a1a,hat:0x6a5530};
+const PLAYER_COL={legs:0x5b4a36,boots:0x3a2a1c,belt:0x3a2a1c,shirt:0x7b9c45,skin:0xe2b48a,hair:0x6a4a2a,hat:0x8a6a3e};
+function drawPerson(x,y,yaw,walk,moving,c,extra,atZ){
+  const gz=atZ!==undefined?atZ:standY(x,y);
+  fig(x,y,gz,yaw,FIG);
+  const sw=moving?Math.sin(walk*9)*.55:0;
+  personBody(c,sw,-sw*.8,sw*.8);
+  if (extra) extra(gz,sw);
+}
+function drawPlayer3(dt){
+  const yaw=Math.PI/2-player.aim;
+  let gz=player.z+player.jz;
+  if (player.ride){ // v6: riding — draw the animal, then the player sitting on its back
+    const r=player.ride, A=ANIMALS[r.type], s=AN[r.type];
+    r.amp=(r.amp||0)+((player.moving?1:0)-(r.amp||0))*Math.min(1,dt*5);
+    if (player.moving) r.gait=(r.gait||0)+CFG.PLAYER_SPEED*CFG.RIDE_MULT*dt*5.5/Math.max(.5,A.size);
+    drawAnimalAt(r,player.x,player.y,player.z,r.yaw3||yaw,1);
+    const k=A.size*.62*FIG*(.55+.45*r.scale), L=s.legs!==undefined?s.legs:.4, bh=s.low?.34:.5;
+    gz=player.z+(L+bh+(s.hump?.2:0))*k-.62*FIG;
+  }
+  fig(player.x,player.y,gz,yaw,FIG);
+  const sw=player.moving&&!player.ride&&!player.air?Math.sin(player.walk*11)*.55:0;
+  const shovel=player.tool==='shovel';
+  const dig=player.digT>0?Math.sin((.3-player.digT)/.3*Math.PI):0;
+  personBody(PLAYER_COL,sw,shovel?-.5-dig*.9:-1.05,shovel?-.7-dig*1.1:-1.3,!!player.ride);
+  // water tank on the back, with a window showing how full it is
+  part(0,1.05,-.25,.36,.52,.2,0x2f6f9a); part(0,1.34,-.25,.14,.07,.14,0x1f4f72);
+  part(0,.85,-.25,.4,.05,.24,0x1f4f72); part(0,1.25,-.25,.4,.05,.24,0x1f4f72);
+  const lvl=Math.max(.02,player.water/CFG.TANK);
+  part(0,.82+.4*lvl/2+.03,-.356,.12,.4*lvl,.01,0x8fd0f5);
+  if (shovel){ // pick-shovel held in both hands, swinging when you dig
+    const a=-.9-dig*1.2;
+    part(.18,1.0,.3,.06,.06,.9,0x7a5a3a,a,1.0);
+    part(.18,1.0,.78,.3,.05,.22,0x9aa0a6,a,1.0); part(.18,1.0,.76,.06,.22,.06,0x9aa0a6,a,1.0);
+  } else {
+    part(.2,.95,-.12,.06,.06,.18,0x2a2a2a); part(.24,.9,.06,.06,.06,.22,0x2a2a2a);
+    part(.14,.98,.42,.14,.16,.46,0x8fd0f5); part(.14,.9,.3,.08,.16,.08,0x2f6f9a);
+    part(.14,.98,.7,.09,.09,.14,0x2f6f9a); part(.14,1.08,.36,.1,.05,.22,0x2f6f9a);
+  }
+}
+function drawPoacher3(p,dt){
+  const moving=p.spd>0;
+  const yaw=moving?turnTo(p,Math.cos(p.dir),Math.sin(p.dir),dt):(p.yaw3||0);
+  if (p.kind==='trapper'){ // v7: khaki trapper with a coil of rope and a crowbar; frozen solid once sprayed
+    drawPerson(p.x,p.y,yaw,p.walk,moving&&!p.caught,TRAPPER_COL,()=>{
+      for (let q=0;q<6;q++){ const a=q/6*TAU; part(-.2+Math.cos(a)*.13,1.1+Math.sin(a)*.13,-.2,.06,.06,.06,0xc8b078); } // rope coil
+      part(.34,.72,.12,.05,.6,.05,0x5a5a60);                                  // crowbar
+      if (p.caught){ for (let q=0;q<10;q++){ const a=q/10*TAU+elapsed; part(Math.cos(a)*.45,.3+q*.16,Math.sin(a)*.45,.08,.08,.08,0xbfeaff); } }
+      else if (p.state==='flee') part(0,2.2,0,.1,.26,.1,0xffe27a);
+      else if (p.state==='chase') part(0,2.2,0,.2,.08,.2,0xe8744f);         // on the hunt
+    });
+  } else if (p.kind==='stealer'){
+    drawPerson(p.x,p.y,yaw,p.walk,moving,STEALER_COL,()=>{
+      const fc=p.hut?p.hut.col:'#e05ad8';
+      part(0,1.02,-.19,.3,.36,.1,dk(0xb04ab8,.7));        // backpack
+      part(-.12,1.6,-.24,.03,1.1,.03,0x3a2a1e);            // banner pole
+      part(-.12+.14,1.98,-.24,.26,.18,.02,fc);             // banner in the hut's colour
+      part(.36,1.0,.22,.04,.04,.9,0x6a5238);               // net on a pole
+      part(.36,1.0,.72,.3,.26,.26,0xd8d0c0);
+      if (p.state==='flee') part(0,2.25,0,.1,.26,.1,0xffe27a);
+    });
+  } else {
+    drawPerson(p.x,p.y,yaw,p.walk,moving,POACHER_COL,()=>{
+      part(0,1.03,-.2,.32,.4,.14,0x8a7048); part(0,1.25,-.2,.12,.06,.1,0x5a4a30);  // sack on the back
+      part(0,1.29,.02,.4,.06,.32,0xa8302a);                                        // red bandana
+      if (p.state==='dig'){ part(.3,.5,.35,.05,.9,.05,0x7a5a3a,Math.sin(elapsed*10)*.6,.9); part(.3,.06,.5,.2,.04,.18,0x9a9a9a,Math.sin(elapsed*10)*.6,.9); }
+      else if (p.state==='chop'){ const a=-1.2+Math.sin(elapsed*12)*.8; part(.34,.95,.25,.05,.6,.05,0x7a5a3a,a,1.2); part(.34,.68,.3,.05,.14,.16,0xb8b8b8,a,1.2); }
+      else { part(.36,.75,.1,.07,.28,.07,0x5a3a20); part(.36,.94,.1,.09,.1,.09,Math.sin(elapsed*14+p.x)>0?0xff9a2a:0xffd23a); } // lit torch
+      if (p.state==='flee') part(0,2.2,0,.1,.26,.1,0xffe27a);
+      else if (p.think) part(0,2.2,0,.18,.18,.18,0xf1e6cf);
+    });
+  }
+  if (p.carry){ p.carry.amp=0; } if (p.carry) drawAnimalAt(p.carry,p.x,p.y,standY(p.x,p.y)+1.75*FIG,yaw+Math.PI/2,.55);
+}
+
+/* ---------------- Animals (v4: more detailed) ----------------
+   One box body plan with per-species parts. */
+const AN={
+  roo:     {b:0xb07a4a, bi:true, ears:'tall', belly:0xe8d2b0},
+  wombat:  {b:0x7a6250, legs:.12, low:1, ears:'round', muzzle:0x5a4636},
+  emu:     {b:0x5a4a3a, bi:true, bird:1},
+  echidna: {b:0x3a2e26, legs:.08, low:1, spikes:0xd8c8a8, snout:.3},
+  bird:    {b:0xe07a3a},
+  croc:    {b:0x4f6a3a, legs:.1, long:1.8, low:1, snout:.55, ears:'none', ridge:1, belly:0xc8c890},
+  elephant:{b:0x8a8a8e, trunk:1, legs:.55, ears:'big', tusk:1, nails:0xd8d0c0, chest:1},
+  camel:   {b:0xc9a26a, legs:.6, neck:.5, hump:1, muzzle:0xe0c89a},
+  lion:    {b:0xd2a04a, mane:0x8a5a2a, mane2:0x6a3e1c, tail:1, tuft:0x5a3a1a, chest:1, muzzle:0xf0dcb0},
+  monkey:  {b:0x6a4a30, bi:true, tail:1, face:0xd8b48a, ears:'round'},
+  bear:    {b:0x5a3e2a, legs:.35, ears:'round', muzzle:0xa8845a, hump:0, shoulder:1, chest:1},
+  giraffe: {b:0xe0b050, legs:.8, neck:1.1, spots:0x8a5a2a, ossicones:1, tail:1, tuft:0x3a2a1a, mane:0x8a5a2a, maneBack:1},
+  horse:   {b:0x8a5a3a, legs:.6, neck:.35, mane:0x3a261a, maneBack:1, tail:1, blaze:0xf2ece0, socks:0xf2ece0, chest:1},
+  rhino:   {b:0x8e8a84, horn:1, legs:.35, plates:1, chest:1},
+  deer:    {b:0xa8703e, legs:.6, neck:.3, antler:1, rumpSpot:0xf2ece0, muzzle:0xd8b890},
+  tiger:   {b:0xe08a2a, stripes:0x2a2018, tail:1, muzzle:0xf4ece0, tailRings:1, chest:1},
+  koala:   {b:0x9a9a9e, bi:true, ears:'fluffy', belly:0xd8d8dc},
+  zebra:   {b:0xf0f0ea, stripes:0x2a2a2a, legs:.6, neck:.3, mane:0x2a2a2a, maneBack:1, tail:1, legStripes:1, muzzle:0x2a2a2a},
+  hippo:   {b:0x8a6a7a, legs:.25, low:.2, snout:.3, ears:'tiny', muzzle:0xd89aa0},
+  fox:     {b:0xd86a2a, tail:1, muzzle:0xf4ece0, socks:0x2a2018, belly:0xf4ece0},
+  beaver:  {b:0x6a4a2e, legs:.1, low:1, flat:1, ears:'tiny'},
+};
+function eyes(x,y,z,s,blink){ // white eye with dark pupil on each side of the head; now and then they blink
+  for (const sx of [-1,1]){
+    if (blink){ part(sx*x,y,z,.013,.02*s,.07*s,0x2a2018); continue; }
+    part(sx*x,y,z,.012,.07*s,.07*s,0xffffff); part(sx*(x+.004),y,z+.012*s,.012,.045*s,.04*s,0x14100c);
+    part(sx*(x+.006),y+.018*s,z+.022*s,.012,.012*s,.012*s,0xffffff); // glint
+  }
+}
+/* v9: every animal has a gait phase (driven by how far it has actually moved) and an amount of motion (0 = still,
+   1 = walking), both smoothed, so legs, heads and tails move steadily instead of twitching */
+function drawAnimalAt(a,x,y,gz,yaw,kk){
+  const A=ANIMALS[a.type], s=AN[a.type], k=A.size*.62*FIG*(.55+.45*a.scale)*(kk||1);
+  const g=a.gait||0, amp=a.amp||0, tt=elapsed+(a.v||0)*1.7;
+  const blink=((tt*.37)%3.1)<.12;
+  const breathe=(1-amp)*Math.sin(tt*2.2)*.012;               // gentle breathing while standing still
+  fig(x,y,gz,yaw,k);
+  const c=s.b, dark=dk(c,.72), light=new THREE.Color(c).lerp(new THREE.Color(0xf4ead8),.35).getHex();
+  const belly=s.belly||light, muzzle=s.muzzle||light;
+  if (a.type==='bird'){ // flying bird with flapping wings
+    const f=Math.sin(elapsed*16+a.v)*.7;
+    part(0,0,0,.3,.26,.5,c); part(0,-.05,0,.24,.1,.44,light);
+    part(0,.12,.3,.22,.22,.22,c); part(0,.1,.46,.08,.07,.14,0xf2c230); eyes(.112,.16,.33,1,blink);
+    part(0,.05,-.33,.2,.05,.2,dark); part(0,.05,-.44,.14,.04,.1,dk(c,.55));
+    part(-.14,.1,0,.36,.05,.3,dark,f,.1); part(.14,.1,0,.36,.05,.3,dark,-f,.1);
+    part(-.34,.1+f*.22,0,.3,.05,.26,dark); part(.34,.1+f*.22,0,.3,.05,.26,dark);
+    part(-.46,.1+f*.3,-.02,.14,.04,.2,dk(c,.5)); part(.46,.1+f*.3,-.02,.14,.04,.2,dk(c,.5)); // wing tips
+    return;
+  }
+  if (s.bi){ // upright animals: kangaroo, emu, monkey, koala
+    const hopP=Math.sin(g*.5);
+    const up=a.type==='roo'?Math.abs(hopP)*.28*amp:Math.abs(Math.sin(g))*.03*amp;
+    const lean=a.type==='roo'?amp*.25:0, sw=a.type==='roo'?0:Math.sin(g)*.5*amp;
+    if (a.type==='roo'){ part(-.13,.04+up,.1,.12,.08,.42,dark); part(.13,.04+up,.1,.12,.08,.42,dark); }
+    part(-.14,.26+up,0,.15,.4,.3,dark,sw,.46+up); part(.14,.26+up,0,.15,.4,.3,dark,-sw,.46+up);
+    part(0,.66+up+breathe,0,.5,.6,.44,c,lean,.36+up); part(0,.62+up,.2,.34,.44,.06,belly,lean,.36+up);
+    if (s.bird){
+      const ny=Math.sin(g*2)*.04*amp;
+      part(-.1,.22,0,.06,.44,.06,0x3a3020,sw,.44); part(.1,.22,0,.06,.44,.06,0x3a3020,-sw,.44);
+      part(0,1.2,.18+ny,.14,.5,.14,c); part(0,1.5+ny,.24+ny,.24,.2,.3,c); part(0,1.48+ny,.44+ny,.08,.06,.14,0x3a3020);
+      eyes(.122,1.53+ny,.3+ny,1,blink);
+      part(0,.8,-.28,.36,.3,.2,dk(c,.85));                                     // tail feathers
+      return;
+    }
+    const hy=1.14+up;
+    part(0,hy,.04,.4,.38,.36,c); part(0,hy-.06,.22,.2,.14,.08,a.type==='monkey'?s.face:muzzle);
+    part(0,hy-.02,.26,.09,.06,.03,0x1e1812);
+    eyes(.2,hy+.06,.12,1.1,blink);
+    if (s.face) part(0,hy+.02,.19,.3,.26,.02,s.face);
+    if (s.ears==='tall'){ const f=Math.sin(tt*1.3)>.97?.3:0; part(-.11,hy+.29,-.02,.1,.26,.06,c,f,hy+.16); part(.11,hy+.29,-.02,.1,.26,.06,c,0,hy+.16); part(-.11,hy+.29,.015,.06,.18,.01,light,f,hy+.16); part(.11,hy+.29,.015,.06,.18,.01,light,0,hy+.16); }
+    if (s.ears==='round'){ part(-.22,hy+.18,0,.1,.14,.06,dark); part(.22,hy+.18,0,.1,.14,.06,dark); }
+    if (s.ears==='fluffy'){ part(-.26,1.34,0,.2,.22,.08,0xd8d8dc); part(.26,1.34,0,.2,.22,.08,0xd8d8dc); part(-.26,1.34,.03,.12,.14,.04,0xf0f0f0); part(.26,1.34,.03,.12,.14,.04,0xf0f0f0); part(0,1.1,.24,.12,.12,.06,0x2a2626); }
+    const arm=a.type==='roo'?-.6:-.4+Math.sin(g)*.3*amp;
+    part(-.27,.8+up,.12,.1,.28,.1,c,arm,.94+up); part(.27,.8+up,.12,.1,.28,.1,c,-arm*(a.type==='roo'?1:-1)+(a.type==='roo'?0:-.8),.94+up);
+    if (a.type==='roo'){ const tw=-.15+hopP*.25*amp; part(0,.4+up,-.4,.16,.16,.5,c,tw,.4+up); part(0,.25+up,-.75,.1,.1,.4,c,tw,.4+up); }
+    if (s.tail){ const tw=Math.sin(tt*2)*.3; part(0,.5,-.35,.07,.07,.4,dark,tw,.5); part(0,.68,-.55,.07,.4,.07,dark,tw,.5); }
+    return;
+  }
+  // ---------------- four-legged body plan ----------------
+  const L=s.legs!==undefined?s.legs:.4, len=(s.long||1)*.9, bh=s.flat?.28:s.low?.34:.5, bw=s.low?.5:.46;
+  const sw=Math.sin(g)*.55*amp, hoof=Math.min(.1,L*.35), bob=Math.abs(Math.cos(g))*.035*amp;
+  const by=L+bh/2+bob+breathe;                                  // body centre height
+  // legs: thicker upper, slimmer lower, hoof/paw; diagonal pairs move together
+  for (const [lx,lz,ph,q] of [[-.16,len*.32,1,0],[.16,len*.32,-1,1],[-.16,-len*.32,-1,2],[.16,-len*.32,1,3]]){
+    const r=sw*ph, top=L+bob, up=L*.55, lo=L-hoof-up;
+    part(lx,top-up/2,lz,.16,up,.16,dark,r,top);
+    part(lx,hoof+lo/2,lz,.12,lo,.12,s.legStripes&&q%2?s.stripes:dark,r,top);
+    if (s.legStripes) part(lx,hoof+lo*.3,lz,.125,.05,.125,s.stripes,r,top);
+    if (s.socks && (a.v+q)%3!==0) part(lx,hoof+lo*.25,lz,.13,lo*.5,.13,s.socks,r,top);
+    part(lx,hoof/2,lz+.01,.15,hoof,.17,s.nails?s.nails:dk(c,.4),r,top);
+  }
+  part(0,by,0,bw,bh,len,c);                                      // body
+  part(0,by+bh/2+.02,0,bw*.8,.05,len*.78,c);                     // rounded top of the back
+  part(0,L+bob+.03,0,bw*.8,.06,len*.8,belly);                    // pale belly
+  if (s.chest) part(0,by+.02,len*.36,bw*1.06,bh*1.08,len*.3,c);   // deeper chest/shoulders
+  if (s.shoulder) part(0,by+bh*.5,len*.25,bw*.7,.14,len*.3,c);   // bear's shoulder hump
+  if (s.stripes) for (let q=-2;q<=2;q++) part(0,by,q*len*.17,bw+.02,bh*.9,.05,s.stripes);
+  if (s.spots) for (const sx of [-1,1]) for (let q=-1;q<=1;q++) for (let r=0;r<3;r++) part(sx*(bw/2+.005),L+bh*(.2+.3*r)+bob,q*len*.28+(r-1)*.07+((q+r)&1)*.05,.01,.09,.11,s.spots);
+  if (s.spikes) for (let q=-1;q<=1;q++) for (const sx of [-.1,.1]) part(sx,by+bh/2+.04,q*.16,.05,.12,.05,s.spikes);
+  if (s.ridge) for (let q=-3;q<=3;q++) part(0,by+bh/2+.03,q*len*.12,.12,.06,.08,dark);
+  if (s.plates) for (let q=-1;q<=1;q+=2) part(0,by,q*len*.2,bw+.015,bh*.95,.025,dark);
+  if (s.hump) { part(0,by+bh/2+.1,0,.34,.2,.36,c); part(0,by+bh/2+.22,0,.22,.1,.24,c); }
+  if (s.maneBack) part(0,by+bh/2+.03,len*.3,.08,.08,len*.3,s.mane);
+  if (s.rumpSpot) part(0,by+bh*.1,-len/2-.005,bw*.6,bh*.5,.02,s.rumpSpot);
+  // neck and head, nodding a little with each step
+  const hs=s.low?.3:.34, nz=len/2+.05, nod=Math.sin(g*2)*.03*amp;
+  let hy=L+bh*.6+(s.neck||0)+bob+nod;
+  if (s.neck){
+    part(0,L+bh*.5+(s.neck+.2)/2+bob,nz-.05,.18,s.neck+.2,.18,c);
+    if (s.maneBack) part(0,L+bh*.5+(s.neck+.2)/2+bob,nz-.15,.06,s.neck+.1,.06,s.mane);
+    if (s.spots) for (let q=0;q<3;q++) for (const sx of [-1,1]) part(sx*.095,L+bh*.5+s.neck*(.3+q*.28)+bob,nz-.05+(q&1)*.04,.01,.08,.08,s.spots);
+  }
+  const hz=nz+.12;
+  part(0,hy,hz,hs,hs,hs+.06,c);                                   // skull
+  const sn=s.snout||.16;
+  part(0,hy-hs*.18,hz+(hs+.06)/2+sn/2,hs*.7,hs*.55,sn,muzzle);    // muzzle
+  part(0,hy-hs*.05,hz+(hs+.06)/2+sn,hs*.4,hs*.18,.02,0x1e1812);   // nose
+  if (s.blaze) part(0,hy+hs*.05,hz+(hs+.06)/2+.005,hs*.22,hs*.7,.01,s.blaze);
+  if (a.type==='tiger') for (const sx of [-1,1]) part(sx*(hs/2+.005),hy,hz,.01,.05,hs*.6,s.stripes);
+  if (a.type==='zebra') for (let q=0;q<2;q++) part(0,hy+hs*(.1+q*.25),hz,hs+.01,.03,hs+.07,s.stripes);
+  eyes(hs/2+.005,hy+hs*.15,hz+hs*.1,s.low?.9:1,blink);
+  const ears=s.ears||'point', flick=Math.sin(tt*1.7)>.96?.4:0;
+  if (ears==='point'){ part(-hs*.3,hy+hs*.62,hz-.05,.08,.14,.05,c,flick,hy+hs*.5); part(hs*.3,hy+hs*.62,hz-.05,.08,.14,.05,c,0,hy+hs*.5); part(-hs*.3,hy+hs*.62,hz-.02,.05,.09,.01,light,flick,hy+hs*.5); part(hs*.3,hy+hs*.62,hz-.02,.05,.09,.01,light,0,hy+hs*.5); }
+  if (ears==='round'){ part(-hs*.36,hy+hs*.55,hz-.05,.12,.12,.06,dark); part(hs*.36,hy+hs*.55,hz-.05,.12,.12,.06,dark); }
+  if (ears==='tiny'){ part(-hs*.3,hy+hs*.55,hz-.08,.06,.06,.04,dark); part(hs*.3,hy+hs*.55,hz-.08,.06,.06,.04,dark); }
+  if (ears==='big'){ const fl=Math.sin(tt*1.1)*.15; part(-hs*.62,hy,hz-.05,.06,.44,.38,dk(c,.9),fl,hy+.2); part(hs*.62,hy,hz-.05,.06,.44,.38,dk(c,.9),-fl,hy+.2); }
+  if (s.mane && !s.maneBack) { part(0,hy-.02,hz-.08,hs+.22,hs+.24,.2,s.mane); part(0,hy-.18,hz-.12,hs+.12,.22,.18,s.mane); if (s.mane2) part(0,hy+.02,hz-.2,hs+.14,hs+.12,.08,s.mane2); }
+  if (s.trunk){ const tw=Math.sin(tt*1.4)*.25; part(0,hy-.3,hz+.3,.13,.36,.13,c,tw,hy-.12); part(0,hy-.55,hz+.34,.11,.2,.11,c,tw*1.5,hy-.12); for (let q=0;q<3;q++) part(0,hy-.2-q*.1,hz+.37,.135,.012,.02,dark,tw,hy-.12); }
+  if (s.tusk){ part(-.1,hy-.28,hz+.3,.05,.05,.22,0xf2ecdc); part(.1,hy-.28,hz+.3,.05,.05,.22,0xf2ecdc); part(-.1,hy-.25,hz+.42,.045,.08,.045,0xf2ecdc); part(.1,hy-.25,hz+.42,.045,.08,.045,0xf2ecdc); }
+  if (s.horn){ part(0,hy+.06,hz+.36,.09,.24,.09,0xe8e0d0); part(0,hy+.2,hz+.38,.06,.1,.06,0xe8e0d0); part(0,hy+.12,hz+.2,.07,.14,.07,0xe8e0d0); }
+  if (s.antler){
+    for (const sx of [-1,1]){ part(sx*.1,hy+hs*.7,hz,.04,.3,.04,0x8a6a4a); part(sx*.17,hy+hs*.7+.12,hz,.14,.04,.04,0x8a6a4a); part(sx*.22,hy+hs*.7+.2,hz+.04,.04,.14,.04,0x8a6a4a); part(sx*.12,hy+hs*.7+.2,hz-.05,.04,.12,.04,0x8a6a4a); }
+  }
+  if (s.ossicones){ part(-.07,hy+hs*.65,hz-.04,.05,.14,.05,dark); part(.07,hy+hs*.65,hz-.04,.05,.14,.05,dark); part(-.07,hy+hs*.65+.08,hz-.04,.07,.05,.07,0x3a2a1a); part(.07,hy+hs*.65+.08,hz-.04,.07,.05,.07,0x3a2a1a); }
+  // tails swish steadily
+  const ty=L+bh*.7+bob, tz=-len/2, sw2=Math.sin(tt*2.4)*.25+Math.sin(g)*.2*amp;
+  if (a.type==='fox'){ part(0,ty-.05,tz-.25,.16,.16,.45,c,sw2*.5,ty); part(0,ty-.05,tz-.52,.14,.14,.1,0xf0e6d8,sw2*.5,ty); }
+  else if (a.type==='croc'){ const w=Math.sin(tt*1.6)*.1; part(0,L+bh*.35,tz-.3,.3,.22,.6,c,w,L+bh*.35); part(0,L+bh*.3,tz-.8,.18,.14,.5,c,w*2,L+bh*.35); }
+  else if (a.type==='beaver'){ part(0,L+.03,tz-.2,.3,.06,.38,0x3a2a1e); for (let q=0;q<3;q++) part(0,L+.065,tz-.08-q*.11,.3,.005,.02,0x2a1e14); }
+  else if (s.tail){
+    part(0,ty-.18,tz-.03,.06,.4,.06,dark,.5+sw2,ty);
+    if (s.tailRings) for (let q=0;q<3;q++) part(0,ty-.08-q*.1,tz-.03,.065,.03,.065,s.stripes,.5+sw2,ty);
+    if (s.tuft) part(0,ty-.42,tz-.03,.1,.12,.1,s.tuft,.5+sw2,ty);
+    else if (s.mane) part(0,ty-.42,tz-.03,.1,.18,.1,s.mane,.5+sw2,ty);
+  }
+  else part(0,ty,tz-.04,.07,.07,.1,dark);
+}
+function drawAnimal3(a,dt){
+  // v9: draw each animal at a smoothed position that eases after its real one. The simulation can nudge
+  // animals along corridor edges in little zigzags; smoothing turns that into a steady walk
+  if (a.rx===undefined || Math.hypot(a.x-a.rx,a.y-a.ry)>2.5){ a.rx=a.x; a.ry=a.y; a.rz=undefined; }
+  const px=a.rx, py=a.ry, k=Math.min(1,dt*7);
+  a.rx+=(a.x-a.rx)*k; a.ry+=(a.y-a.ry)*k;
+  const mx=a.rx-px, my=a.ry-py, dist=Math.hypot(mx,my), size=ANIMALS[a.type].size;
+  a.gait=(a.gait||0)+dist*5.5/Math.max(.5,size);                 // stride length grows with size
+  const sp=dist/Math.max(dt,1e-3);
+  a.amp=(a.amp||0)+(Math.min(1,sp/1.1)-(a.amp||0))*Math.min(1,dt*5);
+  a.mvx=(a.mvx||0)*.85+mx*.15; a.mvy=(a.mvy||0)*.85+my*.15;       // low-passed heading, so it doesn't spin on tiny moves
+  if (Math.hypot(a.mvx,a.mvy)>.0015){
+    const t=yawOf(a.mvx,a.mvy); let cur=a.yaw3===undefined?t:a.yaw3, d=((t-cur+Math.PI*3)%(Math.PI*2))-Math.PI;
+    a.yaw3=cur+d*Math.min(1,dt*4.5);
+  }
+  const yaw=a.yaw3||0, hab=ANIMALS[a.type].hab, i=tileAt(a.rx,a.ry);
+  let target;
+  if (a.type==='bird') target=standY(a.rx,a.ry)+1.2+a.z*3.5;
+  else if (i>=0 && terr[i]===WATER) target=WATER_Y-(hab==='water'?.25:.1);
+  else target=standY(a.rx,a.ry);
+  a.rz=a.rz===undefined?target:a.rz+(target-a.rz)*Math.min(1,dt*6);   // climbs steps smoothly instead of popping up
+  drawAnimalAt(a,a.rx,a.ry,a.rz,yaw,1);
+  if (a.dry>=CFG.THIRST_WARN && ((elapsed*2)|0)%2===0) wbox(a.rx,a.rz+1.6*size*.62*FIG+.4,a.ry,.22,.3,.22,0x4aa8ff);
+}
+
+/* ---------------- Huts and pens ---------------- */
+function drawHut3(h){
+  const gz=standY(h.x,h.y), R2=1.5, posts=16, built=h.built?posts:Math.floor(h.prog*posts), gateK=4;
+  const pos=k=>{ const a=k/posts*TAU; return [h.x+Math.cos(a)*R2, h.y+Math.sin(a)*R2]; };
+  for (let k=0;k<built;k++){
+    const [px,py]=pos(k); wbox(px,gz+.3,py,.12,.6,.12,0x5e4228);
+    if (k===gateK-1||k===gateK||(k+1>=built&&built<posts)) continue;
+    const [qx,qy]=pos(k+1), mx=(px+qx)/2, my=(py+qy)/2, ln=Math.hypot(qx-px,qy-py);
+    fig(mx,my,gz,yawOf(qx-px,qy-py),1); part(0,.36,0,.05,.06,ln,0x7a5836); part(0,.18,0,.05,.06,ln,0x7a5836);
+  }
+  // gate: locked shut while the stealer is around, open once they're rewilded
+  if (h.built){
+    const [ax,ay]=pos(gateK-1), [bx,by]=pos(gateK+1), [gx,gy]=pos(gateK);
+    if (!h.ownerGone){
+      fig((ax+bx)/2,(ay+by)/2,gz,yawOf(bx-ax,by-ay),1);
+      const ln=Math.hypot(bx-ax,by-ay); part(0,.36,0,.06,.07,ln,0x8e6a42); part(0,.18,0,.06,.07,ln,0x8e6a42);
+      wbox(gx,gz+.3,gy,.14,.14,.14,0xd4b13a); // padlock
+    } else { fig(ax,ay,gz,yawOf(gx-ax,gy-ay)+1.2,1); part(0,.3,.35,.05,.4,.7,0x8e6a42); }
+  }
+  // the hut itself, at the back of the pen
+  if (h.built||h.prog>.4){
+    const hx=h.x-.45, hy=h.y-.55;
+    wbox(hx,gz+.45,hy,1.0,.9,.8,0x8a6a45);
+    wbox(hx,gz+.3,hy+.41,.28,.6,.02,0x4a321e); wbox(hx,gz+.62,hy+.415,.34,.05,.02,0x6a4a2a);            // door + lintel
+    for (const sx of [-.32,.32]){ wbox(hx+sx,gz+.55,hy+.405,.18,.16,.02,0xe8c878); wbox(hx+sx,gz+.55,hy+.41,.02,.16,.02,0x4a321e); } // lit windows
+    for (const sx of [-.5,.5]) wbox(hx+sx,gz+.45,hy+.41,.06,.9,.06,0x5e4228);                          // corner posts
+    for (let q=0;q<3;q++) wbox(hx,gz+.95+q*.15,hy,1.2-q*.35,.15,1.0-q*.3,q===2?0xc8a060:0xb08c52);
+    wbox(hx+.3,gz+1.25,hy-.2,.16,.4,.16,0x7a6a5a); wbox(hx+.3,gz+1.47,hy-.2,.2,.05,.2,0x5a4a3a);       // chimney
+    if (h.captives.length) wbox(hx+.3,gz+1.65+((elapsed*.8)%1)*.6,hy-.2,.14,.14,.14,0xcfcfcf);        // a puff of smoke
+  }
+  // flag in the stealer's colour (grey once they're gone)
+  if (h.col && (h.built||h.prog>.2)){
+    const fx=h.x+.9, fy=h.y-.9, wv=Math.sin(elapsed*4+h.x)*.08;
+    wbox(fx,gz+.9,fy,.06,1.8,.06,0x4a3a2a);
+    wbox(fx+.25,gz+1.6+wv,fy,.44,.3,.03,h.ownerGone?'#8a8a8a':h.col);
+  }
+  for (const a of h.captives){ a.amp=0; } for (const a of h.captives) drawAnimalAt(a,h.x+a.ox,h.y+a.oy*.8+.2,gz,(a.face>0?Math.PI/2:-Math.PI/2),.8);
+  // "3/10" style count shown as a row of small blocks above the hut
+  const n=h.captives.length;
+  for (let q=0;q<n;q++) wbox(h.x-.45+(q-(n-1)/2)*.16,gz+2.1,h.y-.55,.12,.12,.12,0xf1e6cf);
+}
+
+/* ---------------- Fire and butterflies ---------------- */
+function drawFires3(){
+  for (const i of burning){
+    if (blaze[i]<=0) continue;
+    const x=i%W+.5, y=((i/W)|0)+.5, gz=topOf(i), f=1-blaze[i]*.4;
+    for (let q=0;q<3;q++){
+      const ph=elapsed*9+q*2.1+i, h=(.35+.25*Math.sin(ph))*f;
+      const ox=(hash2(i,q,3)-.5)*.6, oz=(hash2(q,i,4)-.5)*.6;
+      wbox(x+ox,gz+h/2,y+oz,.28,h,.28,q===1?0xffd23a:0xff7a1a);
+    }
+    wbox(x,gz+.9+.2*Math.sin(elapsed*5+i),y,.14,.14,.14,0xffe27a);
+  }
+}
+function drawFlies3(){
+  for (const b of flies){
+    const gz=standY(b.x,b.y)+b.z*1.4, f=Math.abs(Math.sin(b.ph*14))*.1+.02;
+    wbox(b.x-.05,gz,b.y,.1,f,.12,b.col); wbox(b.x+.05,gz,b.y,.1,f,.12,b.col);
+  }
+}
+/* ---------- v7: crates and eagles ---------- */
+function drawCrate3(c){
+  const gz=standY(c.x,c.y), s=Math.max(.8,Math.min(1.5,ANIMALS[c.a.type].size*.55+.4));
+  c.a.amp=0; drawAnimalAt(c.a,c.x,c.y,gz+.06,c.yaw,.62);
+  fig(c.x,c.y,gz,c.yaw,s);
+  const P=0x5e4228, S=0x9a7446;
+  for (const [x,z] of [[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]]) part(x,.45,z,.1,.9,.1,P);   // corner posts
+  for (const y of [.06,.46,.86]){ // slats on all four sides, gaps between so you can see the animal
+    part(0,y,-.5,1,.1,.05,S); part(0,y,.5,1,.1,.05,S); part(-.5,y,0,.05,.1,1,S); part(.5,y,0,.05,.1,1,S);
+  }
+  for (const z of [-.3,0,.3]) part(0,.92,z,1.02,.05,.12,S);                              // lid
+}
+function drawEagle3(e){
+  const P=eaglePos(e), f=Math.sin(elapsed*(e.t<1.6?6:11));
+  fig(P.x,P.y,P.z,P.yaw,1.7);
+  part(0,0,0,.42,.36,1.0,0x5a3a22); part(0,.08,.56,.3,.3,.3,0xf4f0e6); part(0,.02,.78,.1,.1,.16,0xf2c230);
+  part(0,.02,-.62,.36,.08,.3,0xf4f0e6);
+  part(-.55,.12,0,.8,.06,.5,0x4a2e1a,f*.5,.12); part(.55,.12,0,.8,.06,.5,0x4a2e1a,-f*.5,.12);
+  part(-1.2,.12+f*.35,0,.7,.05,.44,0x3a2412); part(1.2,.12+f*.35,0,.7,.05,.44,0x3a2412);
+  part(-.12,-.26,.1,.06,.2,.06,0xf2c230); part(.12,-.26,.1,.06,.2,.06,0xf2c230);             // talons
+  if (e.carry) drawPerson(P.x,P.y+0,P.yaw,0,false,TRAPPER_COL,null,P.z-2.35);
+}
+function drawEntities(dt){
+  bn=0;
+  drawPlayer3(dt);
+  for (const p of poachers) drawPoacher3(p,dt);
+  for (const a of animals) drawAnimal3(a,dt);
+  for (const h of huts) drawHut3(h);
+  for (const c of crates) drawCrate3(c);
+  for (const e of eagles) drawEagle3(e);
+  drawFires3(); drawFlies3();
+  batch.count=bn; ghost.count=bn; batch.instanceMatrix.needsUpdate=true; batch.instanceColor.needsUpdate=true;
+}
+function update(dt){
+  elapsed+=dt;
+  // player movement — 3D: relative to the camera, so W walks "into the screen"
+  let f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+  let s=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+  if (keys.KeyQ) cam3.yaw+=dt*1.8; if (keys.KeyE) cam3.yaw-=dt*1.8;
+  if (keys.KeyR) tilt(-dt*.9); if (keys.KeyF) tilt(dt*.9); // v8: R tilts up to the sky, F back down
+  player.moving=f!==0||s!==0;
+  if (player.moving){
+    const l=Math.hypot(f,s); f/=l; s/=l;
+    const fx=-Math.sin(cam3.yaw), fz=-Math.cos(cam3.yaw), rx=-fz, rz=fx;
+    const mx=fx*f+rx*s, my=fz*f+rz*s, sp=CFG.PLAYER_SPEED*(player.ride?CFG.RIDE_MULT:1)*dt; // v6: riding is 1.5x faster
+    const bl=(x,y)=>player.air?!inMap(x,y,.3):blocked(x,y,.3);   // v6: in mid-jump you can cross water
+    const nx=player.x+mx*sp; if (!bl(nx,player.y)) player.x=nx;
+    const ny=player.y+my*sp; if (!bl(player.x,ny)) player.y=ny;
+    player.walk+=dt;
+    if (player.ride){ const r=player.ride; r.yaw3=turnTo(r,mx,my,dt); r.hop+=dt*ANIMALS[r.type].spd*3; }
+  }
+  if (player.ride){ player.ride.vx=player.moving?1:0; player.ride.vy=0; player.ride.x=player.x; player.ride.y=player.y; }
+  updateJump(dt);
+  if (!player.air && !blocked(player.x,player.y,.3)){ player.lastX=player.x; player.lastY=player.y; }
+  const gy=standY(player.x,player.y); player.z+=(gy-player.z)*Math.min(1,dt*14); // follow the ground
+  aim=screenToWorld(mouse.x,mouse.y);
+  player.aim=Math.atan2(aim.y-player.y,aim.x-player.x);
+
+  // refill
+  player.refilling=false;
+  // 3D: wider reach than v12, it's harder to judge the water's edge in 3D
+  for (let dy=-3;dy<=3 && !player.refilling;dy++) for (let dx=-3;dx<=3;dx++){
+    const i=tileAt(player.x+dx,player.y+dy);
+    if (i>=0 && terr[i]===WATER){
+      const cx=Math.floor(player.x+dx)+.5, cy=Math.floor(player.y+dy)+.5;
+      if (Math.hypot(cx-player.x,cy-player.y)<3.2){ player.refilling=true; break; }
+    }
+  }
+  if (player.refilling && player.water<CFG.TANK){
+    player.water=Math.min(CFG.TANK,player.water+CFG.REFILL*dt);
+    if (R()<dt*8) burst(player.x+(R()-.5),player.y+(R()-.5),2,'drop');
+  }
+
+  // firing
+  player.cd-=dt; player.digT=Math.max(0,player.digT-dt);
+  if (player.tool==='shovel'){ // v6: pick-shovel
+    if (mouse.down && player.cd<=0){ player.cd=CFG.DIG_CD; shovelDig(); } // right-click drops dirt (see mouseup)
+  }
+  else if (mouse.down && player.cd<=0){
+    if (player.water>=CFG.SHOT_COST){ fire(); player.cd=CFG.FIRE_CD; }
+    else { player.cd=.4; if (elapsed-lastEmptyToast>4){ lastEmptyToast=elapsed; toast('Tank empty — stand beside a lake to refill'); } }
+  }
+
+  // blobs
+  for (const b of blobs){
+    b.t+=dt*CFG.BLOB_SPEED/b.dist;
+    const t=Math.min(b.t,1);
+    b.x=b.sx+(b.tx-b.sx)*t; b.y=b.sy+(b.ty-b.sy)*t; b.z=Math.sin(Math.PI*t)*b.arc;
+    for (const p of poachers){
+      if (!p.dead && !p.caught && Math.hypot(p.x-b.x,p.y-b.y)<.8){ convertPoacher(p); b.done=true; break; } // v3: wider shot
+    }
+    if (b.done) continue;
+    for (const a of animals){
+      const r=.3+.25*a.scale*ANIMALS[a.type].size;
+      if ((b.z<.6||a.type==='bird') && Math.hypot(a.x-b.x,a.y-(b.y))<r){
+        a.scale=Math.min(1,a.scale+.15); burst(a.x,a.y-.4,3,'heart');
+        a.drinks++;
+        if (elapsed<(a.sprayUntil||0) && a.drinks>=CFG.ANIMAL_BREED_HITS && (a.young||0)<CFG.MAX_YOUNG && elapsed>=(a.nextBreed||0)){
+          a.drinks=0; a.nextBreed=elapsed+4;
+          const n=Math.min(1+(R()<.5?1:0), CFG.MAX_YOUNG-(a.young||0)); a.young=(a.young||0)+n;
+          for (let q=0;q<n && animals.length<CFG.ANIMAL_HARD_MAX;q++){
+            let bx=a.x+(R()-.5)*1.4, by=a.y+(R()-.5)*1.4; const j=tileAt(bx,by);
+            if (j<0 || (terr[j]===WATER && ANIMALS[a.type].hab!=='water' && ANIMALS[a.type].hab!=='air')){ bx=a.x; by=a.y; }
+            const y2=spawnAnimal(bx,by,a.type,.5); y2.sprayUntil=a.sprayUntil; // young can be sprayed too until the window closes
+          }
+          burst(a.x,a.y-.4,8,'heart'); burst(a.x,a.y,10,'sparkle');
+        }
+        splash(a.x,a.y,CFG.SPLASH_R,CFG.SPLASH_PROG,true); burst(a.x,a.y,8,'drop');
+        b.done=true; break;
+      }
+    }
+    if (b.done) continue;
+    if (b.t>=1){ for (const h of huts) if (Math.hypot(h.x-b.tx,h.y-b.ty)<2.1){ hitHut(h); break; } }
+    if (b.t>=1){ bigSplash(b); b.done=true; }
+  }
+  blobs=blobs.filter(b=>!b.done);
+
+  // poachers
+  for (const p of poachers){
+    if (p.dead) continue;
+    if (p.caught){ p.spd=0; continue; }                          // v7: a frozen trapper waits for the eagle
+    const d=Math.hypot(p.x-player.x,p.y-player.y);
+    p.walk+=dt;
+    if (stuckCheck(p,dt,p.spd>0)) rescuePoacher(p);          // v6: unstick after a minute
+    if (!p.dodgeT) checkDodge(p);
+    if (p.dodgeT>0){                                           // v6: sidestep an incoming shot
+      p.dodgeT-=dt; if (p.dodgeT<=0) p.dodgeT=0;
+      const nx=p.x+Math.cos(p.dodgeDir)*CFG.POACHER_FLEE*1.3*dt, ny=p.y+Math.sin(p.dodgeDir)*CFG.POACHER_FLEE*1.3*dt;
+      if (!blocked(nx,ny,.3)){ p.x=nx; p.y=ny; } p.dir=p.dodgeDir; p.spd=CFG.POACHER_FLEE; continue;
+    }
+    if (d<CFG.FLEE_R){
+      if (p.state!=='flee'){ p.state='flee'; p.stumble=0; }
+      p.wob=clamp(p.wob+(R()-.5)*dt*3,-.7,.7);
+      if (p.stumble>0){ p.stumble-=dt; p.spd=0; }
+      else {
+        p.dir=Math.atan2(p.y-player.y,p.x-player.x)+p.wob; p.spd=CFG.POACHER_FLEE;
+        if (R()<dt*.15) p.stumble=.6; // dopey (v6: a little less often)
+      }
+    } else {
+      if (p.state==='flee'){ p.state= p.kind==='stealer' ? (p.carry?'return':'rest') : 'wander'; p.t=.6; p.spd=CFG.POACHER_SPEED*.6; p.waryT=10+R()*8; } // v11: stay wary after a scare
+      if (p.kind==='stealer') stealerAI(p,dt);
+      else if (p.kind==='trapper') trapperAI(p,dt);
+      else if (p.state==='toChop'||p.state==='chop') chopAI(p,dt);
+      else {
+        p.t-=dt;
+        if (p.t<=0){
+          if (p.state==='dig') finishDig(p);
+          if (R()<.3){ p.state='idle'; p.spd=0; p.t=1+R()*2.5; p.think=R()<.45; }
+          else { p.state='wander'; p.dir=R()*TAU; if (R()<.55) seekTrack(p); p.spd=CFG.POACHER_SPEED*(.7+R()*.5); p.t=2+R()*4; p.think=false; } // v7: often head for your green tracks
+        }
+      }
+    }
+    if (p.state!=='flee') beWary(p,d,dt);                         // v11: sneak around you rather than walk up to you
+    if (p.spd>0){
+      const nx=p.x+Math.cos(p.dir)*p.spd*dt, ny=p.y+Math.sin(p.dir)*p.spd*dt;
+      if (!blocked(nx,ny,.3)){ p.x=nx; p.y=ny; }
+      else if (p.state==='flee'){
+        const alt=p.dir+(R()<.5?1:-1)*Math.PI/2;
+        const ax=p.x+Math.cos(alt)*p.spd*dt, ay=p.y+Math.sin(alt)*p.spd*dt;
+        if (!blocked(ax,ay,.3)){ p.x=ax; p.y=ay; }
+      } else if (p.kind==='stealer'||p.kind==='trapper'||p.state==='toChop'){ // go round obstacles toward a goal
+        for (const off of [.8,-.8,1.6,-1.6]){ const a2=p.dir+off, ax=p.x+Math.cos(a2)*p.spd*dt, ay=p.y+Math.sin(a2)*p.spd*dt; if (!blocked(ax,ay,.3)){ p.x=ax; p.y=ay; break; } }
+      } else { p.dir=R()*TAU; }
+    }
+    if ((p.state==='dig'||p.state==='chop') && R()<dt*4) burst(p.x+.3,p.y+.1,2,'chip');
+  }
+  poachers=poachers.filter(p=>!p.dead);
+  updateEagles(dt);
+
+  // poachers returning, lighting fires, digging
+  for (let k=returning.length-1;k>=0;k--) if (elapsed>=returning[k].t){ const r=returning.splice(k,1)[0]; spawnReturningPoacher(r); }
+  fireTimer-=dt;
+  if (fireTimer<=0){
+    fireTimer=CFG.FIRE_EVERY_MIN+R()*(CFG.FIRE_EVERY_MAX-CFG.FIRE_EVERY_MIN);
+    if (rewild>.05 && burning.length<CFG.MAX_NEW_FIRE){
+      const c=poachers.filter(p=>{const i=tileAt(p.x,p.y); return p.kind==='poacher'&&i>=0&&stage[i]>=1&&moist[i]<.2&&p.state!=='flee';});
+      if (c.length){ const p=pickTrackCutter(c); if (ignite(tileAt(p.x,p.y))) toast('A poacher lit a fire. Spray it out before it spreads'); }
+    }
+  }
+  chopTimer-=dt;
+  if (chopTimer<=0){
+    chopTimer=CFG.CHOP_EVERY_MIN+R()*(CFG.CHOP_EVERY_MAX-CFG.CHOP_EVERY_MIN);
+    const c=poachers.filter(p=>p.kind==='poacher'&&(p.state==='wander'||p.state==='idle'));
+    for (let k=0;k<6&&c.length;k++){
+      const p=c.splice((R()*c.length)|0,1)[0], j=nearestTree(p.x,p.y,10);
+      if (j>=0){ p.state='toChop'; p.goal=j; p.t=25; p.think=false; break; }
+    }
+  }
+  digTimer-=dt;
+  if (digTimer<=0){
+    digTimer=CFG.DIG_EVERY_MIN+R()*(CFG.DIG_EVERY_MAX-CFG.DIG_EVERY_MIN);
+    const c=poachers.filter(p=>p.kind==='poacher'&&p.state!=='flee'&&p.state!=='dig'&&p.state!=='toChop'&&p.state!=='chop'&&stage[tileAt(p.x,p.y)]>=1);
+    if (c.length){ const p=pickTrackCutter(c); p.state='dig'; p.spd=0; p.t=CFG.DIG_TIME; p.think=false; }
+  }
+  for (const i of burning) if (blaze[i]>0 && R()<dt*2.5) burst(i%W+.5,((i/W)|0)+.5,1,'smoke');
+
+  // animals
+  animalTimer-=dt;
+  if (animalTimer<=0){
+    animalTimer=CFG.ANIMAL_SPAWN_EVERY;
+    const max=Math.min(CFG.ANIMAL_MAX,Math.floor(rewild*160));
+    if (animals.length<max){
+      for (let k=0;k<40;k++){
+        const x=(R()*W)|0, y=(R()*H)|0, i=y*W+x;
+        if (stage[i]<2) continue;
+        let lush=0;
+        for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){ const j=tileAt(x+dx,y+dy); if (j>=0&&stage[j]>=2) lush++; }
+        if (lush>=6 && reach[i] && !(k<30 && densAt(x,y)>2)){
+          const type=pickAnimal(k=>ANIMALS[k].hab==='water'?wdist[i]<=2:ANIMALS[k].hab==='trees'?stage[i]===3:true);
+          let ax=x+.5, ay=y+.5;
+          if (ANIMALS[type].hab==='water'){ // slip into the nearest water
+            for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){ const j=tileAt(x+dx+.5,y+dy+.5); if (j>=0&&terr[j]===WATER){ ax=x+dx+.5; ay=y+dy+.5; } }
+          }
+          spawnAnimal(ax,ay,type,.55);
+          if (HERD_TYPES.has(type)) for (let q=0,n=2+((R()*3)|0);q<n;q++){ // the rest of the herd
+            let bx=ax+(R()-.5)*3, by=ay+(R()-.5)*2; if (!goodHabitat(type,tileAt(bx,by))){ bx=ax; by=ay; }
+            spawnAnimal(bx,by,type,.55+R()*.35);
+          }
+          break;
+        }
+      }
+    }
+  }
+  densT-=dt; if (densT<=0){ densT=.5; updateDensity(); }
+  reachT-=dt; if (reachT<=0){ reachT=2; computeReach(); }
+  for (const h of herds){ h.t-=dt; if (h.t<=0){ h.t=10+R()*18; moveHerd(h); } }
+  thirstT-=dt;
+  if (thirstT<=0){
+    thirstT=10;
+    const warn={}, died={}; let nw=0, nd=0;
+    for (const a of animals){
+      if (a.dry>=CFG.THIRST_WARN+CFG.THIRST_DIE){ a.gone=true; died[a.type]=(died[a.type]||0)+1; nd++; burst(a.x,a.y,8,'smoke'); }
+      else if (a.dry>=CFG.THIRST_WARN && !a.warned){ a.warned=true; warn[a.type]=(warn[a.type]||0)+1; nw++; }
+    }
+    const list=o=>Object.entries(o).map(([k,n])=>n+' '+(n===1?ANIMALS[k].name:plural(ANIMALS[k].name))).join(', ');
+    if (nw) toast('No green path to water for '+list(warn)+'. Link their patch to a lake or stream','big');
+    if (nd){ toast(list(died)+(nd===1?' has':' have')+' died of thirst'); animals=animals.filter(a=>!a.gone); }
+  }
+  for (const a of animals){
+    const A=ANIMALS[a.type];
+    // v5: animals cut off from water go looking for it: first to the nearest green track that links to water,
+    // then along that track to the water's edge for a drink
+    if (A.hab!=='air' && A.hab!=='water' && A.hab!=='beaver'){
+      a.pathT=(a.pathT||0)-dt;
+      a.restT=(a.restT===undefined?10+R()*40:a.restT)-dt;          // v12: rest, then set off on the next trip
+      if (!a.path && a.pathT<=0 && (a.dry>3 || a.restT<=0)){ a.pathT=2+R()*2; planWaterPath(a); if (!a.path && a.restT<=0) a.restT=6+R()*8; }
+    }
+    const calm=RIDEABLE.has(a.type) && !player.ride && Math.hypot(a.x-player.x,a.y-player.y)<2.6; // v6: rideable animals wait for you
+    if (calm){ a.vx=a.vy=0; a.tx=null; }
+    else if (a.path) followWaterPath(a,A,dt);
+    else if (!(a.type==='beaver' && updateBeaver(a,dt))){
+      a.t-=dt;
+      if (a.t<=0){
+        if (R()<.3){ a.vx=a.vy=0; a.tx=null; a.t=1+R()*2.5; }
+        else { pickRoam(a); a.t=a.herd?1.5+R()*2:3+R()*5; }
+      }
+      if (a.tx!=null){ // head for the chosen spot, sliding along the edges of green corridors
+        const dx=a.tx-a.x, dy=a.ty-a.y, d=Math.hypot(dx,dy);
+        if (d<.4){ a.tx=null; a.vx=a.vy=0; a.t=Math.min(a.t,1.5); }
+        else {
+          const sp=A.spd*(.6+.4*a.scale), base=Math.atan2(dy,dx), cur=tileAt(a.x,a.y), side=a.side||1;
+          let moved=false;
+          for (const off of [0,.6,-.6,1.2,-1.2,1.8,-1.8]){
+            const ang=base+off*side, nx=a.x+Math.cos(ang)*sp*dt, ny=a.y+Math.sin(ang)*sp*dt;
+            if (!animalBlocked(a.type,cur,tileAt(nx,ny))){ a.vx=Math.cos(ang)*sp; a.vy=Math.sin(ang)*sp; a.x=nx; a.y=ny; moved=true; break; }
+          }
+          if (moved) a.hop+=dt*A.spd*3; else { a.tx=null; a.vx=a.vy=0; a.side=-side; }
+          if (a.vx) a.face=a.vx>0?1:-1;
+        }
+      } else if (a.vx||a.vy){
+        const nx=a.x+a.vx*dt, ny=a.y+a.vy*dt;
+        const cur=tileAt(a.x,a.y), nxt=tileAt(nx,ny);
+        if (animalBlocked(a.type,cur,nxt)){ a.vx=a.vy=0; a.t=.3; }
+        else { a.x=nx; a.y=ny; a.hop+=dt*A.spd*3; }
+        if (a.vx) a.face=a.vx>0?1:-1;
+      }
+    }
+    if (a.type==='bird') a.z+=((a.vx||a.vy?1:0)-a.z)*Math.min(1,dt*2);
+    a.scale=Math.min(1,a.scale+dt*.004);
+    if (A.hab!=='air' && !calm && stuckCheck(a,dt,a.tx!=null||!!a.path||!!(a.vx||a.vy))) rescueAnimal(a); // v6: unstick after a minute
+    // water access: needed to breed, and to survive
+    if (hasWater(a)){
+      a.dry=0; a.warned=false;
+      if (a.scale>=1 && (a.natYoung||0)<CFG.NAT_YOUNG){
+        if (a.nextNat===undefined) a.nextNat=elapsed+CFG.NAT_BREED_MIN+R()*(CFG.NAT_BREED_MAX-CFG.NAT_BREED_MIN);
+        else if (elapsed>=a.nextNat && animals.length<CFG.ANIMAL_HARD_MAX){
+          a.natYoung=(a.natYoung||0)+1; a.nextNat=elapsed+CFG.NAT_BREED_MIN+R()*(CFG.NAT_BREED_MAX-CFG.NAT_BREED_MIN);
+          let bx=a.x+(R()-.5)*1.2, by=a.y+(R()-.5)*1.2; if (!goodHabitat(a.type,tileAt(bx,by))){ bx=a.x; by=a.y; }
+          const b=spawnAnimal(bx,by,a.type,.5); if (a.herd){ b.herd=a.herd; }
+          burst(a.x,a.y-.4,4,'heart');
+        }
+      }
+    } else a.dry+=dt;
+    a.fert-=dt;
+    if (a.fert<=0){ // droppings and carried seeds
+      a.fert=3+R()*3;
+      const j=tileAt(a.x+(R()*7-3.5),a.y+(R()*7-3.5));
+      if (j>=0) addProg(j,.5*a.scale);
+    }
+  }
+
+  // butterflies drift around near the player wherever the ground is alive
+  const flyMax=Math.min(18,Math.floor(3+rewild*40));
+  if (flies.length<flyMax && R()<dt*2){
+    const x=player.x+(R()-.5)*30, y=player.y+(R()-.5)*18, j=tileAt(x,y);
+    if (j>=0 && terr[j]!==WATER && stage[j]>=1) flies.push({x,y,z:.4+R()*.5,vx:0,vy:0,ph:R()*10,life:20+R()*20,col:FLY_COLS[(R()*FLY_COLS.length)|0]});
+  }
+  for (const b of flies){
+    b.ph+=dt; b.life-=dt;
+    b.vx+=(R()-.5)*dt*6; b.vy+=(R()-.5)*dt*6; const v=Math.hypot(b.vx,b.vy); if (v>1.2){ b.vx*=1.2/v; b.vy*=1.2/v; }
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.z=clamp(b.z+Math.sin(b.ph*2)*dt*.3,.3,1.1);
+    if (Math.hypot(b.x-player.x,b.y-player.y)>35) b.life=0;
+  }
+  for (let k=flies.length-1;k>=0;k--) if (flies[k].life<=0) flies.splice(k,1);
+
+  for (const h of huts) for (const a of h.captives){
+    a.hop+=dt*2; if (R()<dt*.5){ a.ox=clamp(a.ox+(R()-.5)*.5,-.8,.8); a.oy=clamp(a.oy+(R()-.5)*.3,-.3,.45); a.face=R()<.5?-1:1; }
+  }
+  // particles
+  for (const p of parts){
+    p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
+    if (p.type==='heart'||p.type==='sparkle'||p.type==='smoke'||p.type==='ring'){ p.z+=p.vz*dt; }
+    else { p.z+=p.vz*dt; p.vz-=12*dt; if (p.z<0){ p.z=0; p.vz=0; p.vx*=.5; p.vy*=.5; } }
+    if (p.type==='leaf'){ p.vz=Math.max(p.vz,-1.2); }
+  }
+  parts=parts.filter(p=>p.life>0);
+
+  // simulation
+  simAcc+=dt; let n=0;
+  while (simAcc>=CFG.SIM_DT && n<2){ simAcc-=CFG.SIM_DT; simTick(); n++; }
+  if (simAcc>CFG.SIM_DT) simAcc=0;
+
+  // milestones & win
+  while (milestones.length && rewild>=milestones[0]){
+    const m=milestones.shift(); toast(Math.round(m*100)+'% of the land is rewilded','big');
+  }
+  if (!winShown && rewild>=CFG.WIN_AT){ winShown=true; showWin(); }
+}
+/* ---------------- Draw ---------------- */
+let frame=0;
+const flies=[];
+const FLY_COLS=['#f2c94c','#f4f1ea','#e98a5d','#8fc3f0','#c79be0'];
+function drawScene(dt){
+  waterTime.value=performance.now()/1000;
+  drawEntities(dt);
+  const T=shotTarget(aim.x,aim.y), inR=Math.hypot(aim.x-player.x,aim.y-player.y)<=CFG.RANGE; // v4: 2-block target
+  aimMark.rotation.y=T.axx?0:Math.PI/2;
+  let ax=T.cx, az=T.cy;
+  if (player.tool==='shovel'){ // v6: one-block target; green = can dig, blue = can drop dirt, orange = too far
+    const S=shovelTarget(); ax=Math.floor(aim.x)+.5; az=Math.floor(aim.y)+.5; aimMark.rotation.y=0; aimMark.scale.x=.5;
+    aimMark.material.color.set(!S.inR?0xffa24a: canDig(S.i)?0x9be07a: canPlace(S.i)?0x8fd0f5:0xd05a4a);
+    aimMark.position.set(ax,aim.h+.03,az);
+  } else aimMark.scale.x=1;
+  if (player.tool!=='shovel'){ aimMark.position.set(ax,aim.h+.03,az); aimMark.material.color.set(inR?0xffffff:0xffa24a); }
+  drawInst();
+  for (const c of clouds){ c.position.x+=c.userData.s*.02; if (c.position.x>290) c.position.x=-90; }
+  renderer.render(scene,camera);
+}
+function drawMinimap(){ // same markers as v12, plus which way the camera faces
+  mg.putImageData(mimg,0,0);
+  mg.fillStyle='#fff3d6';
+  for (const a of animals) mg.fillRect(a.x|0,a.y|0,1,1);
+  if ((frame>>4)&1){ mg.fillStyle='#4aa8ff'; for (const a of animals) if (a.dry>=CFG.THIRST_WARN) mg.fillRect((a.x|0)-1,(a.y|0)-1,3,3); }
+  mg.fillStyle='#1a0e08';
+  for (const p of poachers) mg.fillRect((p.x|0)-3,(p.y|0)-3,6,6);
+  for (const h of huts){ mg.fillStyle='#1a0e08'; mg.fillRect((h.x|0)-4,(h.y|0)-4,8,8); mg.fillStyle=h.ownerGone?'#8a8a8a':h.col; mg.fillRect((h.x|0)-3,(h.y|0)-3,6,6); }
+  for (const p of poachers){
+    if (p.kind==='stealer'){ mg.fillStyle='#ffffff'; mg.fillRect((p.x|0)-3,(p.y|0)-3,6,6); mg.fillStyle=p.hut?p.hut.col:'#e05ad8'; mg.fillRect((p.x|0)-2,(p.y|0)-2,4,4); }
+    else if (p.kind==='trapper'){ mg.fillStyle='#1a0e08'; mg.fillRect((p.x|0)-3,(p.y|0)-3,6,6); mg.fillStyle='#f2c230'; mg.fillRect((p.x|0)-2,(p.y|0)-2,4,4); }
+    else { mg.fillStyle='#ff4a2a'; mg.fillRect((p.x|0)-2,(p.y|0)-2,4,4); }
+  }
+  for (const c of crates){ mg.fillStyle='#1a0e08'; mg.fillRect((c.x|0)-2,(c.y|0)-2,5,5); mg.fillStyle='#b08a52'; mg.fillRect((c.x|0)-1,(c.y|0)-1,3,3); }
+  if (burning.length){
+    mg.fillStyle=(frame>>4)&1?'#ffd23a':'#ff7a1a';
+    for (const i of burning) if (blaze[i]>0) mg.fillRect((i%W)-1,((i/W)|0)-1,3,3);
+  }
+  const a=-cam3.yaw-Math.PI/2, px=player.x, py=player.y;
+  mg.fillStyle='rgba(255,255,255,.22)'; mg.beginPath(); mg.moveTo(px,py); mg.arc(px,py,26,a-.55,a+.55); mg.closePath(); mg.fill();
+  mg.fillStyle='#1a1410'; mg.fillRect((px|0)-2,(py|0)-2,5,5);
+  mg.fillStyle='#ffffff'; mg.fillRect((px|0)-1,(py|0)-1,3,3);
+}
+
+/* ---------------- HUD (from v12) ---------------- */
+const hud={conv:el('convN'),stream:el('streamN'),wild:el('wild'),species:el('species'),covBars:[...document.querySelectorAll('.cover i')],covTxt:[...document.querySelectorAll('.legend b')],ret:el('returnN'),fires:el('fireN'),pct:el('pct'),pctFill:el('pctFill'),poach:el('poachN'),animal:el('animalN'),time:el('timeN'),water:el('waterFill'),ws:el('waterStatus')};
+function fmtTime(t){const m=Math.floor(t/60), s=Math.floor(t%60); return m+':'+(s<10?'0':'')+s;}
+function updateHud(){
+  const pc=Math.min(100,Math.floor(rewild*1000)/10);
+  hud.pct.firstChild.nodeValue=pc.toFixed(1);
+  hud.pctFill.style.width=pc+'%';
+  let ns=0, nt=0, nc=0; for (const p of poachers){ if (p.caught) nc++; else if (p.kind==='stealer') ns++; else if (p.kind==='trapper') nt++; }
+  hud.poach.textContent=poachers.length-ns-nt-nc; el('stealN').textContent=ns; el('trapN').textContent=nt; el('crateN').textContent=crates.length;
+  let pen=0; for (const h of huts) pen+=h.captives.length; for (const p of poachers) if (p.carry) pen++;
+  el('penN').textContent=pen;
+  hud.ret.textContent=poachersLeft-poachers.length;
+  hud.conv.textContent=totalVisits-poachersLeft;
+  hud.stream.textContent=(beaverWater*5)+' m';
+  const L=landCount||1, pcs=[(cover[0]-burntN)/L,cover[1]/L,cover[2]/L,cover[3]/L,burntN/L];
+  for (let k=0;k<5;k++){ hud.covBars[k].style.width=(pcs[k]*100)+'%'; hud.covTxt[k].textContent=Math.round(pcs[k]*100)+'%'; }
+  const cnt={}; for (const a of animals) cnt[a.type]=(cnt[a.type]||0)+1;
+  const kinds=Object.keys(cnt).length;
+  hud.animal.textContent=animals.length+(kinds?' ('+kinds+' kinds)':'');
+  if (hud.wild.open){
+    const rows=ANIMAL_KEYS.map(k=>[ANIMALS[k].name,cnt[k]||0]).sort((p,q)=>q[1]-p[1]||p[0].localeCompare(q[0]));
+    const html=rows.map(([n,c])=>'<span'+(c?'':' class="z"')+'>'+n[0].toUpperCase()+n.slice(1)+'</span><b'+(c?'':' class="z"')+'>'+c+'</b>').join('');
+    if (hud.species.innerHTML!==html) hud.species.innerHTML=html;
+  }
+  hud.fires.textContent=burning.length;
+  { let t=0; for (const a of animals) if (a.dry>5) t++; el('thirstN').textContent=t; }
+  hud.time.textContent=fmtTime(elapsed);
+  hud.water.style.width=(player.water/CFG.TANK*100)+'%';
+  const empty=player.water<CFG.SHOT_COST;
+  hud.ws.textContent= player.refilling&&player.water<CFG.TANK ? 'Refilling' : empty ? 'Empty' : Math.round(player.water/CFG.TANK*100)+'%';
+  hud.ws.className= empty&&!player.refilling?'empty':'';
+}
+const toastBox=el('toasts');
+function toast(msg,cls){
+  const d=document.createElement('div'); d.className='toast'+(cls?' '+cls:''); d.textContent=msg;
+  toastBox.appendChild(d);
+  while (toastBox.children.length>4) toastBox.firstChild.remove();
+  setTimeout(()=>d.classList.add('fade'),3200); setTimeout(()=>d.remove(),3800);
+}
+function refreshCover(){ // the sim keeps these current while playing; this covers the title screen
+  computeRewild(); cover.fill(0); burntN=0;
+  for (let i=0;i<N;i++){ if (terr[i]===WATER) continue; cover[stage[i]]++; if (scar[i]===1) burntN++; }
+}
+
+/* ---------------- Screens ---------------- */
+const overlay=el('overlay'), card=el('card');
+function showCard(html,buttons){
+  card.innerHTML=html;
+  const b=document.createElement('div'); b.className='btns';
+  for (const [label,fn,ghost] of buttons){
+    const btn=document.createElement('button'); btn.textContent=label; if (ghost) btn.className='ghost';
+    btn.onclick=fn; b.appendChild(btn);
+  }
+  card.appendChild(b); overlay.classList.remove('hidden'); card.scrollTop=0; b.firstChild.focus({preventScroll:true}); // v8: open at the top
+}
+function hideCard(){ overlay.classList.add('hidden'); }
+const CONTROLS='<h2>Controls</h2><table class="keys">'+[
+  ['W A S D / arrows','Move'],['Mouse','Aim'],['Left click (hold)','Spray, or dig with the pick-shovel'],['Right-click','Drop dirt (pick-shovel): fill a pit or channel, or build the ground up'],
+  ['Scroll-wheel click / Space','Jump (clears a narrow stream)'],['Shift','Get on or off a bear, elephant, horse, camel or lion (1.5x faster)'],
+  ['Alt, or 1 / 2','Tools: water gun or pick-shovel'],['Q / E, or right-drag sideways','Turn the camera'],
+  ['R / F, or right-drag up / down','Tilt the camera: tilt right down to look up at the sky'],['Scroll, or + / \u2212','Zoom in and out'],
+  ['H','This help'],['M','Music on / off'],['Esc','Pause']].map(r=>'<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td></tr>').join('')+'</table>';
+const RULES='<h2>How it works</h2><ul><li>Stand beside a lake to refill your tank</li><li>Water the ground and it comes back to life. Living land spreads to its neighbours, but ground you haven\'t watered barely grows</li><li>Keep watering a patch and it grows into scrub, then trees. Keep spraying one spot and a tree comes up</li><li>Animals need an unbroken green track to water to breed and survive. They never cross barren land, so link their patch to a lake or stream. Once linked they travel along your tracks: down to drink, a rest, then on to new grazing or another lake</li><li>Hit a red poacher to turn them into an animal (sometimes a tree too). Each comes back twice. They light fires and dig up your tracks</li><li>Khaki <b>trappers</b> box animals in crates. Spray a crate to free the animal. Spray a trapper and an eagle carries him off</li><li>Purple <b>stealers</b> pen animals. Rewild the stealer, then spray the hut to free them</li><li>Spray out fires. Burnt ground needs watering before it regrows</li><li>The pick-shovel digs anywhere: bring hills down, cut channels beside water, or dig a pit and spray it full to make a new pond (bigger pits take more shots). Beavers dig streams too</li><li>Spray a new animal (fresh from a poacher) a few times within a minute and it has young</li></ul>';
+const HELP=CONTROLS+RULES;
+function newMap(){
+  treeB.fill(0); treeForce.fill(0); generate((Math.random()*1e9)|0);
+  parts=[]; blobs=[]; flies.length=0; crates=[]; eagles=[]; player.z=standY(player.x,player.y); setTool('gun'); toggleInv(false);
+  cam3.fx=player.x; cam3.fz=player.y; cam3.fy=player.z+1;
+  buildWorld(); refreshCover();
+}
+function showTitle(){
+  state='title';
+  showCard('<h1>Rewild<span>Stage 2 · 3D · v15</span></h1><p>The land is bare and poachers roam it. Water the ground and it comes back to life, and living land spreads to its neighbours.</p>'+HELP,
+    [['Start rewilding',()=>{hideCard();state='play';Music.start();}],['New map',()=>{newMap();},true]]);
+}
+function pause(){ state='pause'; mouse.down=false;
+  showCard('<h1>Paused</h1><p>'+(rewild*100).toFixed(1)+'% rewilded in '+fmtTime(elapsed)+'.</p>'+HELP,
+    [['Resume',resume],['New map',()=>{newMap();showTitle();},true]]); }
+function resume(){ hideCard(); state='play'; }
+function showHelp(){ // v8: open any time from the side panel (or H); pauses the game while it's open
+  if (state==='title'||state==='win') return;
+  state='pause'; mouse.down=false;
+  showCard('<h1>How to play</h1>'+HELP,[['Back to the game',resume]]);
+}
+el('helpBtn').addEventListener('click',()=>{ el('helpBtn').blur(); showHelp(); });
+function showWin(){ state='win'; mouse.down=false;
+  showCard('<h1>It lives</h1><p>You rewilded the whole island in '+fmtTime(elapsed)+', with '+animals.length+' animals now roaming and '+poachersLeft+' poacher visits still to come.</p>',
+    [['Keep exploring',resume],['New map',()=>{newMap();showTitle();},true]]); }
+
+/* ---------------- Music (from v12) ---------------- */
+const Music={
+  ctx:null, on:true, beat:60/72, step:0,
+  start(){
+    if (this.ctx) { this.ctx.resume(); return; }
+    const AC=window.AudioContext||window.webkitAudioContext; if (!AC) return;
+    const c=this.ctx=new AC();
+    this.master=c.createGain(); this.master.gain.value=this.on?.32:0; this.master.connect(c.destination);
+    this.bus=c.createGain(); this.bus.connect(this.master);
+    const d=c.createDelay(); d.delayTime.value=this.beat*.75; const fb=c.createGain(); fb.gain.value=.38;
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2000;
+    const wet=c.createGain(); wet.gain.value=.45;
+    this.bus.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet); wet.connect(this.master);
+    this.next=c.currentTime+.2; this.mel=2;
+  },
+  toggle(){ this.on=!this.on; if (this.master) this.master.gain.setTargetAtTime(this.on?.32:0,this.ctx.currentTime,.2); musicBtn.textContent=this.on?'Music on (M)':'Music off (M)'; },
+  note(m,t,dur,vol,type,att){
+    const c=this.ctx, o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.value=440*Math.pow(2,(m-69)/12);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+att); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(this.bus); o.start(t); o.stop(t+dur+.05);
+  },
+  chirp(t){
+    const c=this.ctx, n=2+((Math.random()*3)|0), base=2400+Math.random()*1400;
+    for (let k=0;k<n;k++){
+      const o=c.createOscillator(), g=c.createGain(), tt=t+k*.11;
+      o.type='sine'; o.frequency.setValueAtTime(base,tt); o.frequency.exponentialRampToValueAtTime(base*1.45,tt+.07);
+      g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(.025,tt+.01); g.gain.exponentialRampToValueAtTime(.0001,tt+.09);
+      o.connect(g); g.connect(this.bus); o.start(tt); o.stop(tt+.12);
+    }
+  },
+  tick(){
+    if (!this.ctx || !this.on) return;
+    const c=this.ctx, e=this.beat/2;
+    const CH=[[50,57,61,66],[47,54,57,62],[43,50,54,59],[45,52,57,61,64]]; // Dmaj7 Bm7 Gmaj7 Aadd9
+    const SC=[74,76,78,81,83,86,88];
+    while (this.next<c.currentTime+.6){
+      const t=this.next, st=this.step, ch=CH[((st/16)|0)%4];
+      if (st%16===0){ for (const m of ch) this.note(m,t,e*17,.035,'sine',1.4); this.note(ch[0]-12,t,e*15,.07,'triangle',.3); }
+      const life=Math.min(1,rewild*1.4);
+      if (R()<.18+.35*life && st%2===(R()<.7?0:1)){
+        this.mel=clamp(this.mel+((R()*5)|0)-2,0,SC.length-1);
+        this.note(SC[this.mel],t,e*3,.05,'triangle',.01);
+      }
+      if (R()<life*.06+animals.length*.0006) this.chirp(t);
+      this.next+=e; this.step++;
+    }
+  }
+};
+const musicBtn=document.getElementById('musicBtn');
+musicBtn.onclick=()=>Music.toggle();
+addEventListener('keydown',e=>{ if (e.code==='KeyM') Music.toggle(); });
+musicBtn.hidden=false;
+
+/* ---------------- Loop ---------------- */
+function resize(){ // v7: the game view fills the space to the right of the side panel
+  const sw=el('side').offsetWidth, w=Math.max(200,innerWidth-sw), h=innerHeight;
+  renderer.setSize(w,h,false); cv.style.width=w+'px'; cv.style.height=h+'px'; cv.style.left=sw+'px'; camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+addEventListener('resize',resize);
+let last=performance.now(), hudT=0, mmT=0;
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now; frame++;
+  if (state==='play') update(dt); else aim=screenToWorld(mouse.x,mouse.y);
+  placeCamera(dt);
+  Music.tick();
+  flushChunks(6);
+  drawScene(dt);
+  wetT-=dt; if (wetT<=0){ wetT=.2; drawWet(); }
+  hudT-=dt; if (hudT<=0){ hudT=.1; updateHud(); }
+  mmT-=dt; if (mmT<=0){ mmT=.25; drawMinimap(); }
+  updateHint(dt);
+  requestAnimationFrame(loop);
+}
+
+resize();
+newMap();
+showTitle();
+updateHud(); drawMinimap();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
